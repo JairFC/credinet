@@ -1,0 +1,60 @@
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: credinet_backend
+    ports:
+      - "8001:8000"
+    volumes:
+      - ./backend/app:/app/app
+    environment:
+      POSTGRES_USER: credinet_user
+      POSTGRES_PASSWORD: credinet_pass
+      POSTGRES_DB: credinet_db
+      POSTGRES_HOST: db
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - credinet
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: credinet_frontend
+    ports:
+      - "5174:5173"
+    networks:
+      - credinet
+    depends_on:
+      - backend
+
+  db:
+    image: postgres:15
+    container_name: credinet_db
+    restart: unless-stopped
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql
+    environment:
+      POSTGRES_USER: credinet_user
+      POSTGRES_PASSWORD: credinet_pass
+      POSTGRES_DB: credinet_db
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U credinet_user -d credinet_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - credinet
+
+volumes:
+  postgres_data:
+
+networks:
+  credinet:
+    driver: bridge

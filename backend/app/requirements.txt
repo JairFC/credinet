@@ -1,0 +1,11 @@
+pydantic
+fastapi
+uvicorn[standard]
+python-dotenv
+asyncpg
+psycopg2-binary
+fastapi-cors
+bcrypt
+pysnmp==4.4.12
+pyasn1==0.4.8
+sqlalchemy>=2.0

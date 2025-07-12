@@ -1,0 +1,47 @@
+.
+├── arbol.txt
+├── backend
+│   ├── app
+│   │   ├── auth
+│   │   │   ├── jwt.py
+│   │   │   ├── routes.py
+│   │   │   └── schemas.py
+│   │   ├── common
+│   │   │   └── database.py
+│   │   ├── core
+│   │   │   └── config.py
+│   │   ├── database
+│   │   ├── main.py
+│   │   ├── requirements.txt
+│   │   ├── routers
+│   │   ├── schemas
+│   │   ├── services
+│   │   └── utils
+│   ├── Dockerfile
+│   └── requirements.txt
+├── db
+│   ├── init.sql
+│   └── migraciones
+├── docker-compose.yml
+├── docs
+│   ├── comisiones_template.md
+│   ├── cronograma.md
+│   ├── db_esquema_inicial.md
+│   ├── entrevista_01.md
+│   ├── funcionalidades.md
+│   ├── README.md
+│   └── tareas.md
+└── frontend
+    ├── Dockerfile
+    ├── index.html
+    ├── package.json
+    ├── src
+    │   ├── App.jsx
+    │   ├── components
+    │   ├── main.jsx
+    │   ├── pages
+    │   ├── routes
+    │   └── services
+    └── vite.config.js
+
+19 directories, 25 files

@@ -1,0 +1,9 @@
+node_modules/
+__pycache__/
+.env
+*.log
+*.sqlite3
+*.lock
+*.pyc
+dist/
+build/
