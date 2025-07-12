@@ -21,13 +21,13 @@ const modalContentStyle = {
   width: '400px',
 };
 
-const EditLoanModal = ({ loan, distributors, onUpdateSuccess, onClose }) => {
+const EditLoanModal = ({ loan, availableAssociates, onUpdateSuccess, onClose }) => {
   const [formData, setFormData] = useState({
-    amount: String(loan.amount), // Aseguramos que el valor inicial sea un string
+    amount: String(loan.amount),
     interest_rate: loan.interest_rate,
     commission_rate: loan.commission_rate || 0.0,
-    term_months: loan.term_months,
-    distributor_id: loan.distributor_id || '',
+    term_quincenas: loan.term_months * 2, // Convertir meses a quincenas para la vista
+    associate_id: loan.associate_id || '',
     payment_frequency: loan.payment_frequency || 'quincenal',
   });
   const [error, setError] = useState('');
@@ -45,8 +45,8 @@ const EditLoanModal = ({ loan, distributors, onUpdateSuccess, onClose }) => {
         amount: parseFloat(formData.amount),
         interest_rate: parseFloat(formData.interest_rate),
         commission_rate: parseFloat(formData.commission_rate) || 0.0,
-        term_months: parseInt(formData.term_months),
-        distributor_id: formData.distributor_id ? parseInt(formData.distributor_id) : null,
+        term_months: parseInt(formData.term_quincenas) / 2, // Convertir quincenas a meses para la API
+        associate_id: formData.associate_id ? parseInt(formData.associate_id) : null,
         payment_frequency: formData.payment_frequency,
       };
       const response = await apiClient.put(`/loans/${loan.id}`, updateData);
@@ -95,18 +95,18 @@ const EditLoanModal = ({ loan, distributors, onUpdateSuccess, onClose }) => {
             </div>
           </div>
           <div className="form-group">
-            <label htmlFor="edit-termMonths">Plazo</label>
+            <label htmlFor="edit-termQuincenas">Plazo (quincenas)</label>
             <div className="input-with-adornment">
-              <input id="edit-termMonths" name="term_months" type="number" className="has-end-adornment" value={formData.term_months} onChange={handleChange} placeholder="Plazo" required />
-              <span className="adornment adornment-end">meses</span>
+              <input id="edit-termQuincenas" name="term_quincenas" type="number" className="has-end-adornment" value={formData.term_quincenas} onChange={handleChange} placeholder="Plazo" required />
+              <span className="adornment adornment-end">quincenas</span>
             </div>
           </div>
           <div className="form-group">
-            <label htmlFor="edit-distributor">Distribuidora</label>
-            <select id="edit-distributor" name="distributor_id" value={formData.distributor_id} onChange={handleChange}>
-              <option value="">-- Sin Distribuidora --</option>
-              {distributors.map(dist => (
-                <option key={dist.id} value={dist.id}>{dist.name}</option>
+            <label htmlFor="edit-associate">Asociado</label>
+            <select id="edit-associate" name="associate_id" value={formData.associate_id} onChange={handleChange}>
+              <option value="">-- Sin Asociado --</option>
+              {Array.isArray(availableAssociates) && availableAssociates.map(assoc => (
+                <option key={assoc.id} value={assoc.id}>{assoc.name}</option>
               ))}
             </select>
           </div>

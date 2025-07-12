@@ -114,7 +114,7 @@ const ClientsPage = () => {
             <th>Nombre</th>
             <th>Apellido</th>
             <th>Email</th>
-            <th>Usuario Asignado</th>
+            <th>Asociado Asignado</th>
             <th>Acciones</th>
           </tr>
         </thead>
@@ -125,7 +125,7 @@ const ClientsPage = () => {
               <td>{client.first_name}</td>
               <td>{client.last_name}</td>
               <td>{client.email || 'N/A'}</td>
-              <td>{users.find(u => u.id === client.user_id)?.username || 'N/A'}</td>
+              <td>{client.associate_name || 'N/A'}</td>
               <td className="actions-cell">
                 <Link to={`/clients/${client.id}/loans`}><button>Préstamos</button></Link>
                 <button onClick={() => setEditingClient(client)} style={{ marginLeft: '5px' }}>Editar</button>

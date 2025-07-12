@@ -176,6 +176,22 @@ async def record_loan_payment(
         return dict(new_payment_record)
 
 
+@router.get("/{loan_id}/payments", response_model=List[schemas.PaymentResponse])
+async def get_loan_payments(
+    loan_id: int,
+    current_user: UserResponse = Depends(get_current_user)
+):
+    async with database.db_pool.acquire() as conn:
+        loan_exists = await conn.fetchval("SELECT EXISTS(SELECT 1 FROM loans WHERE id = $1)", loan_id)
+        if not loan_exists:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Préstamo con id {loan_id} no encontrado.")
+
+        payments_records = await conn.fetch(
+            "SELECT * FROM payments WHERE loan_id = $1 ORDER BY payment_date DESC", loan_id
+        )
+        return [dict(p) for p in payments_records]
+
+
 @router.get("/summary", response_model=schemas.GlobalLoanSummaryResponse)
 async def get_global_loan_summary(
     current_user: UserResponse = Depends(get_current_user)
@@ -209,6 +225,39 @@ async def get_global_loan_summary(
         return schemas.GlobalLoanSummaryResponse.model_validate(dict(summary_data))
 
 
+@router.get("/clients/{client_id}/summary", response_model=schemas.ClientLoanSummaryResponse)
+async def get_client_loan_summary(
+    client_id: int,
+    current_user: UserResponse = Depends(get_current_user)
+):
+    async with database.db_pool.acquire() as conn:
+        query = """
+        SELECT
+            COUNT(*) AS total_loans,
+            COUNT(*) FILTER (WHERE status = 'active') AS active_loans,
+            COALESCE(SUM(amount), 0) AS total_loaned_amount,
+            COALESCE(SUM(
+                CASE
+                    WHEN status IN ('active', 'defaulted') THEN
+                        (SELECT amount + (amount * interest_rate * term_months / 12) - COALESCE(SUM(p.amount_paid), 0)
+                         FROM payments p WHERE p.loan_id = loans.id)
+                    ELSE 0
+                END
+            ), 0) AS total_outstanding_balance
+        FROM loans
+        WHERE client_id = $1;
+        """
+        summary_data = await conn.fetchrow(query, client_id)
+        if not summary_data or summary_data['total_loans'] == 0:
+            return {
+                "total_loans": 0,
+                "active_loans": 0,
+                "total_loaned_amount": 0,
+                "total_outstanding_balance": 0,
+            }
+        return schemas.ClientLoanSummaryResponse.model_validate(dict(summary_data))
+
+
 @router.get("/with_payments", response_model=List[schemas.LoanWithPaymentsResponse])
 async def get_loans_with_payments(
     current_user: UserResponse = Depends(get_current_user)
@@ -239,3 +288,12 @@ async def get_loan_details(
         loan_dict['payments'] = [dict(p) for p in payments_records]
         
         return schemas.LoanWithPaymentsResponse.model_validate(loan_dict)
+
+@router.get("/payments", response_model=List[schemas.PaymentResponse])
+async def get_all_payments(
+    current_user: UserResponse = Depends(get_current_user)
+):
+    async with database.db_pool.acquire() as conn:
+        query = "SELECT * FROM payments ORDER BY payment_date DESC"
+        payments_records = await conn.fetch(query)
+        return [dict(p) for p in payments_records]

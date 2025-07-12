@@ -9,7 +9,7 @@ const ClientLoansPage = () => {
   const { clientId } = useParams();
   const [client, setClient] = useState(null);
   const [loans, setLoans] = useState([]);
-  const [distributors, setDistributors] = useState([]);
+  const [associates, setAssociates] = useState([]);
   const [summary, setSummary] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -18,8 +18,8 @@ const ClientLoansPage = () => {
   const [amount, setAmount] = useState('');
   const [interestRate, setInterestRate] = useState('');
   const [commissionRate, setCommissionRate] = useState('');
-  const [termMonths, setTermMonths] = useState('6'); // Valor por defecto
-  const [selectedDistributor, setSelectedDistributor] = useState('');
+  const [termQuincenas, setTermQuincenas] = useState('12'); // Valor por defecto en quincenas
+  const [selectedAssociate, setSelectedAssociate] = useState('');
   const [paymentFrequency, setPaymentFrequency] = useState('quincenal');
   const [viewingLoanId, setViewingLoanId] = useState(null);
   const [editingLoan, setEditingLoan] = useState(null);
@@ -29,15 +29,15 @@ const ClientLoansPage = () => {
     try {
       setLoading(true);
       // Optimizamos las peticiones para que se ejecuten en paralelo
-      const [clientRes, loansRes, distributorsRes, summaryRes] = await Promise.all([
+      const [clientRes, loansRes, associatesRes, summaryRes] = await Promise.all([
         apiClient.get(`/clients/${clientId}`),
         apiClient.get(`/loans/?client_id=${clientId}`),
-        apiClient.get('/distributors/'),
+        apiClient.get('/associates/'),
         apiClient.get(`/loans/clients/${clientId}/summary`)
       ]);
       setClient(clientRes.data);
       setLoans(loansRes.data);
-      setDistributors(distributorsRes.data);
+      setAssociates(associatesRes.data);
       setSummary(summaryRes.data);
     } catch (err) {
       setError('No se pudieron cargar los datos.');
@@ -50,6 +50,20 @@ const ClientLoansPage = () => {
   useEffect(() => {
     fetchClientAndLoans();
   }, [clientId]);
+
+  const handleAssociateChange = (e) => {
+    const associateId = e.target.value;
+    setSelectedAssociate(associateId);
+
+    if (associateId) {
+      const selected = associates.find(a => a.id === parseInt(associateId));
+      if (selected) {
+        setCommissionRate(String(selected.default_commission_rate));
+      }
+    } else {
+      setCommissionRate(''); // Limpiar si no hay asociado seleccionado
+    }
+  };
 
   const handleCreateLoan = async (e) => {
     e.preventDefault();
@@ -65,11 +79,11 @@ const ClientLoansPage = () => {
         amount: parseFloat(amount),
         interest_rate: parseFloat(interestRate),
         commission_rate: parseFloat(commissionRate) || 0.0,
-        term_months: parseInt(termMonths),
+        term_months: parseInt(termQuincenas) / 2, // Convertir quincenas a meses
         payment_frequency: paymentFrequency,
       };
-      if (selectedDistributor) {
-        loanData.distributor_id = parseInt(selectedDistributor);
+      if (selectedAssociate) {
+        loanData.associate_id = parseInt(selectedAssociate);
       }
 
       const response = await apiClient.post('/loans/', loanData);
@@ -80,8 +94,8 @@ const ClientLoansPage = () => {
       setAmount('');
       setInterestRate('');
       setCommissionRate('');
-      setTermMonths('6');
-      setSelectedDistributor('');
+      setTermQuincenas('12');
+      setSelectedAssociate('');
       setPaymentFrequency('quincenal');
     } catch (err) {
       setFormError(err.response?.data?.detail || 'Error al crear el préstamo.');
@@ -142,8 +156,8 @@ const ClientLoansPage = () => {
   if (loading) return <p>Cargando...</p>;
   if (error) return <p style={{ color: 'red' }}>{error}</p>;
 
-  // Creamos un mapa para buscar nombres de distribuidoras eficientemente
-  const distributorMap = new Map(distributors.map(d => [d.id, d.name]));
+  // Creamos un mapa para buscar nombres de asociados eficientemente
+  const associateMap = new Map(associates.map(a => [a.id, a.name]));
 
   return (
     <div className="clients-page">
@@ -206,18 +220,18 @@ const ClientLoansPage = () => {
           </div>
         </div>
         <div className="form-group">
-          <label htmlFor="termMonths">Plazo</label>
+          <label htmlFor="termQuincenas">Plazo (quincenas)</label>
           <div className="input-with-adornment">
-            <input id="termMonths" type="number" className="has-end-adornment" value={termMonths} onChange={(e) => setTermMonths(e.target.value)} placeholder="6" required />
-            <span className="adornment adornment-end">meses</span>
+            <input id="termQuincenas" type="number" className="has-end-adornment" value={termQuincenas} onChange={(e) => setTermQuincenas(e.target.value)} placeholder="12" required />
+            <span className="adornment adornment-end">quincenas</span>
           </div>
         </div>
         <div className="form-group">
-          <label htmlFor="distributor">Distribuidora</label>
-          <select id="distributor" value={selectedDistributor} onChange={(e) => setSelectedDistributor(e.target.value)}>
-            <option value="">-- Sin Distribuidora --</option>
-            {distributors.map(dist => (
-              <option key={dist.id} value={dist.id}>{dist.name}</option>
+          <label htmlFor="associate">Asociado</label>
+          <select id="associate" value={selectedAssociate} onChange={handleAssociateChange}>
+            <option value="">-- Sin Asociado --</option>
+            {associates.map(assoc => (
+              <option key={assoc.id} value={assoc.id}>{assoc.name}</option>
             ))}
           </select>
         </div>
@@ -242,11 +256,11 @@ const ClientLoansPage = () => {
             <th>Monto</th>
             <th>Tasa de Interés</th>
             <th>Tasa de Comisión</th>
-            <th>Plazo (meses)</th>
+            <th>Plazo (quincenas)</th>
             <th>Frecuencia</th>
             <th>Pagos</th>
             <th>Saldo Pendiente</th>
-            <th>Distribuidora</th>
+            <th>Asociado</th>
             <th>Acciones</th>
             <th>Estado</th>
           </tr>
@@ -260,11 +274,11 @@ const ClientLoansPage = () => {
               <td>${parseFloat(loan.amount).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
               <td>{loan.interest_rate.toFixed(2)}%</td>
               <td>{loan.commission_rate ? loan.commission_rate.toFixed(2) : '0.00'}%</td>
-              <td>{loan.term_months}</td>
+              <td>{loan.term_months * 2}</td>
               <td>{loan.payment_frequency}</td>
               <td>{loan.payments_made} / {loan.payment_frequency === 'quincenal' ? loan.term_months * 2 : loan.term_months}</td>
               <td>${parseFloat(loan.outstanding_balance).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-              <td>{loan.distributor_id ? distributorMap.get(loan.distributor_id) : 'N/A'}</td>
+              <td>{loan.associate_id ? associateMap.get(loan.associate_id) : 'N/A'}</td>
               <td className="actions-cell">
                 <Link to={`/loans/${loan.id}/payments`}><button>Ver Pagos</button></Link>
                 <button onClick={() => setViewingLoanId(loan.id)} style={{marginTop: '5px'}}>Ver Amortización</button>
@@ -298,7 +312,7 @@ const ClientLoansPage = () => {
       {editingLoan && (
         <EditLoanModal
           loan={editingLoan}
-          distributors={distributors}
+          availableAssociates={associates}
           onUpdateSuccess={handleUpdateSuccess}
           onClose={() => setEditingLoan(null)}
         />

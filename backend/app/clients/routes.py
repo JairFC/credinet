@@ -36,7 +36,25 @@ async def get_clients(
     current_user: UserResponse = Depends(get_current_user)
 ):
     async with database.db_pool.acquire() as conn:
-        clients_records = await conn.fetch("SELECT id, first_name, last_name, email, user_id FROM clients ORDER BY last_name")
+        query = """
+        SELECT
+            c.id,
+            c.first_name,
+            c.last_name,
+            c.email,
+            c.user_id,
+            (
+                SELECT a.name
+                FROM associates a
+                JOIN loans l ON a.id = l.associate_id
+                WHERE l.client_id = c.id
+                ORDER BY l.created_at DESC
+                LIMIT 1
+            ) AS associate_name
+        FROM clients c
+        ORDER BY c.last_name;
+        """
+        clients_records = await conn.fetch(query)
         return [dict(record) for record in clients_records]
 
 @router.get("/{client_id}", response_model=schemas.ClientResponse)

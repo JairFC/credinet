@@ -41,7 +41,7 @@ def create_access_token(data: dict):
     return encoded_jwt
 
 async def get_current_user(token: str = Depends(oauth2_scheme)) -> UserInDB:
-    """Decodifica el token, valida el usuario y devuelve sus datos completos."""
+    """Decodifica el token, valida el usuario y devuelve el modelo completo de BD."""
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="No se pudieron validar las credenciales",
@@ -50,18 +50,21 @@ async def get_current_user(token: str = Depends(oauth2_scheme)) -> UserInDB:
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         username: str = payload.get("sub")
-        role: str = payload.get("role")
-        if username is None or role is None:
+        if username is None:
             raise credentials_exception
-        token_data = TokenData(username=username, role=role)
     except JWTError:
         raise credentials_exception
     
     async with database.db_pool.acquire() as conn:
-        user = await conn.fetchrow("SELECT * FROM users WHERE username = $1", token_data.username)
-        if user is None:
+        user_record = await conn.fetchrow("SELECT * FROM users WHERE username = $1", username)
+        if user_record is None:
             raise credentials_exception
-        return UserInDB(**dict(user))
+        return UserInDB(**dict(user_record))
+
+async def get_current_user_response(user: UserInDB = Depends(get_current_user)) -> UserResponse:
+    """Devuelve un modelo UserResponse a partir del usuario actual."""
+    return UserResponse(id=user.id, username=user.username, role=user.role)
+
 
 def require_role(required_role: str):
     """

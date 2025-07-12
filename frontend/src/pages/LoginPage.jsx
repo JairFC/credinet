@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import apiClient from '../services/api';
 import { useAuth } from '../context/AuthContext';
 
@@ -7,14 +7,21 @@ function LoginPage() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
-  const { loginAction } = useAuth();
+  const { user, loginAction } = useAuth();
+  const navigate = useNavigate();
+
+  // Redirige si el usuario ya está logueado
+  useEffect(() => {
+    if (user) {
+      navigate('/dashboard');
+    }
+  }, [user, navigate]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
 
     try {
-      // FastAPI's OAuth2PasswordRequestForm expects form data
       const formData = new URLSearchParams();
       formData.append('username', username);
       formData.append('password', password);
@@ -30,6 +37,11 @@ function LoginPage() {
       console.error('Error en el login:', err.response);
     }
   };
+
+  // No renderizar el formulario si el usuario ya está autenticado para evitar un "flash"
+  if (user) {
+    return null;
+  }
 
   return (
     <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>

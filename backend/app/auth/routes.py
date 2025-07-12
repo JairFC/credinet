@@ -51,9 +51,16 @@ async def login_for_access_token(
                 headers={"WWW-Authenticate": "Bearer"},
             )
     access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
-    access_token = create_access_token(
-        data={"sub": user.username, "role": user.role}
-    )
+    
+    # Prepara los datos para el token
+    token_data = {"sub": user.username, "role": user.role}
+    
+    # Si el usuario es un asociado, añade su ID de asociado al token
+    if user.role == 'asociado' and user.associate_id:
+        token_data["associate_id"] = user.associate_id
+        
+    access_token = create_access_token(data=token_data)
+    
     return {"access_token": access_token, "token_type": "bearer"}
 
 @router.get("/me", response_model=UserResponse)

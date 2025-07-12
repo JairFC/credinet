@@ -9,9 +9,10 @@ from app.logic import get_enriched_loan
 import asyncpg
 from pydantic import BaseModel
 from app.loans.schemas import LoanResponse
-from app.clients.schemas import ClientResponse
+from app.clients.schemas import ClientResponse, ClientInDashboardResponse
 
 router = APIRouter()
+
 
 # ... (las rutas create, get, update, delete de asociados se mantienen igual) ...
 
@@ -22,12 +23,12 @@ async def create_associate(
     async with database.db_pool.acquire() as conn:
         try:
             query = """
-            INSERT INTO associates (name, contact_person, contact_email)
-            VALUES ($1, $2, $3)
-            RETURNING id, name, contact_person, contact_email
+            INSERT INTO associates (name, contact_person, contact_email, default_commission_rate)
+            VALUES ($1, $2, $3, $4)
+            RETURNING id, name, contact_person, contact_email, default_commission_rate
             """
             new_record = await conn.fetchrow(
-                query, associate.name, associate.contact_person, associate.contact_email
+                query, associate.name, associate.contact_person, associate.contact_email, associate.default_commission_rate
             )
             return dict(new_record)
         except asyncpg.exceptions.UniqueViolationError:
@@ -112,12 +113,12 @@ async def update_associate(
     async with database.db_pool.acquire() as conn:
         try:
             query = """
-            UPDATE associates SET name = $1, contact_person = $2, contact_email = $3
-            WHERE id = $4
-            RETURNING id, name, contact_person, contact_email
+            UPDATE associates SET name = $1, contact_person = $2, contact_email = $3, default_commission_rate = $4
+            WHERE id = $5
+            RETURNING id, name, contact_person, contact_email, default_commission_rate
             """
             updated_record = await conn.fetchrow(
-                query, associate_data.name, associate_data.contact_person, associate_data.contact_email, associate_id
+                query, associate_data.name, associate_data.contact_person, associate_data.contact_email, associate_data.default_commission_rate, associate_id
             )
             if not updated_record:
                 raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Asociado con id {associate_id} no encontrado.")
@@ -138,7 +139,7 @@ async def delete_associate(
 class AssociateDashboardData(BaseModel):
     summary: schemas.AssociateSummaryResponse
     loans: List[LoanResponse]
-    clients: List[ClientResponse]
+    clients: List[ClientInDashboardResponse]
 
 @router.get("/dashboard", response_model=AssociateDashboardData, dependencies=[Depends(require_role("asociado"))])
 async def get_associate_dashboard_data(
@@ -155,7 +156,7 @@ async def get_associate_dashboard_data(
         # 2. Enriquecer cada préstamo
         enriched_loans_dicts = []
         for record in loan_ids_records:
-            enriched_loan = await _get_enriched_loan(conn, record['id'])
+            enriched_loan = await get_enriched_loan(conn, record['id'])
             if enriched_loan:
                 enriched_loans_dicts.append(enriched_loan)
         
@@ -176,18 +177,20 @@ async def get_associate_dashboard_data(
         client_ids = {loan['client_id'] for loan in enriched_loans_dicts}
         clients_records = []
         if client_ids:
+            # Esta consulta NO trae associate_name, lo cual es correcto para ClientInDashboardResponse
             clients_query = "SELECT * FROM clients WHERE id = ANY($1::int[])"
             clients_records = await conn.fetch(clients_query, list(client_ids))
 
     # 5. Validar y construir la respuesta final explícitamente
     final_summary = schemas.AssociateSummaryResponse.model_validate(summary_data)
     final_loans = [LoanResponse.model_validate(loan) for loan in enriched_loans_dicts]
-    final_clients = [ClientResponse.model_validate(client) for client in clients_records]
+    final_clients = [ClientInDashboardResponse.model_validate(client) for client in clients_records]
 
     return AssociateDashboardData(
         summary=final_summary,
         loans=final_loans,
         clients=final_clients
     )
+
 
 

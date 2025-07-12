@@ -65,3 +65,12 @@ Este documento describe los principales endpoints de la API de Credinet, su prop
 -   **Obtener Resumen Global (`GET /summary`)**
     -   **Descripción:** Devuelve un resumen de todos los préstamos en el sistema.
     -   **Roles Permitidos:** `desarrollador`, `administrador`, `auxiliar_administrativo`.
+
+---
+
+## Lógica de Negocio Clave
+
+### Sistema de Comisiones
+
+-   **Descripción:** El sistema permite asignar comisiones a los asociados por los préstamos que gestionan. Se basa en un modelo flexible que combina tasas por defecto a nivel de asociado con la capacidad de anularlas para préstamos específicos.
+-   **Documentación Detallada:** Para una explicación completa de la arquitectura y el flujo de datos, consulta el documento [**Sistema de Comisiones**](./sistema_de_comisiones.md).

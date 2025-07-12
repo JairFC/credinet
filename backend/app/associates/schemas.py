@@ -5,6 +5,7 @@ class AssociateBase(BaseModel):
     name: str
     contact_person: Optional[str] = None
     contact_email: Optional[EmailStr] = None
+    default_commission_rate: Optional[float] = 5.0
 
 class AssociateCreate(AssociateBase):
     pass
@@ -14,6 +15,7 @@ class AssociateUpdate(AssociateBase):
 
 class AssociateResponse(AssociateBase):
     id: int
+    default_commission_rate: float
     model_config = ConfigDict(from_attributes=True)
 
 class AssociateSummaryResponse(BaseModel):

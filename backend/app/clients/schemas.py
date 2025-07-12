@@ -15,4 +15,11 @@ class ClientUpdate(ClientBase):
 class ClientResponse(ClientBase):
     id: int
     user_id: Optional[int] = None
+    associate_name: Optional[str] = None
+
+class ClientInDashboardResponse(ClientBase):
+    id: int
+    user_id: Optional[int] = None
+
+
     

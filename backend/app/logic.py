@@ -8,7 +8,15 @@ async def get_enriched_loan(conn: asyncpg.Connection, loan_id: int):
     """
     fetch_query = """
     SELECT
-        l.*,
+        l.id,
+        l.client_id,
+        l.associate_id,
+        l.amount,
+        l.interest_rate,
+        l.commission_rate,
+        l.term_months,
+        l.payment_frequency,
+        l.status,
         c.first_name as client_first_name,
         c.last_name as client_last_name,
         COALESCE(p.payments_made, 0) as payments_made,
@@ -22,30 +30,41 @@ async def get_enriched_loan(conn: asyncpg.Connection, loan_id: int):
     ) p ON l.id = p.loan_id
     WHERE l.id = $1
     """
-    full_loan_record = await conn.fetchrow(fetch_query, loan_id)
+    record = await conn.fetchrow(fetch_query, loan_id)
 
-    if not full_loan_record:
+    if not record:
         return None
 
-    loan_dict = dict(full_loan_record)
-    
-    # Forzar la conversión de Decimal a float y asegurar todos los campos
-    loan_dict['amount'] = float(loan_dict['amount'])
-    loan_dict['interest_rate'] = float(loan_dict['interest_rate'])
-    loan_dict['commission_rate'] = float(loan_dict['commission_rate'])
-    loan_dict['total_paid'] = float(loan_dict['total_paid'])
+    # Convertir el registro a un diccionario mutable
+    loan_dict = dict(record)
 
-    schedule = utils.calculate_amortization_schedule(
-        loan_dict['amount'], loan_dict['interest_rate'], loan_dict['term_months'], loan_dict['payment_frequency']
-    )
-    
-    total_to_be_paid = schedule[0]['payment_amount'] * len(schedule) if schedule else loan_dict['amount']
-    outstanding_balance = round(total_to_be_paid - loan_dict['total_paid'], 2)
-    
-    loan_dict['outstanding_balance'] = outstanding_balance
-    
-    # Asegurarse de que el campo associate_id esté presente
-    if 'associate_id' not in loan_dict:
-        loan_dict['associate_id'] = None
+    # Calcular el saldo pendiente
+    amount = float(loan_dict['amount'])
+    interest_rate = float(loan_dict['interest_rate'])
+    term_months = loan_dict['term_months']
+    payment_frequency = loan_dict['payment_frequency']
+    total_paid = float(loan_dict['total_paid'])
 
-    return loan_dict
+    schedule = utils.calculate_amortization_schedule(amount, interest_rate, term_months, payment_frequency)
+    
+    total_to_be_paid = schedule[0]['payment_amount'] * len(schedule) if schedule else amount
+    outstanding_balance = round(total_to_be_paid - total_paid, 2)
+
+    # Construir el diccionario final explícitamente para asegurar todos los campos
+    # que el modelo LoanResponse espera.
+    return {
+        "id": loan_dict['id'],
+        "client_id": loan_dict['client_id'],
+        "associate_id": loan_dict['associate_id'],
+        "amount": amount,
+        "interest_rate": interest_rate,
+        "commission_rate": float(loan_dict['commission_rate']),
+        "term_months": term_months,
+        "payment_frequency": payment_frequency,
+        "status": loan_dict['status'],
+        "client_first_name": loan_dict['client_first_name'],
+        "client_last_name": loan_dict['client_last_name'],
+        "payments_made": loan_dict['payments_made'],
+        "total_paid": total_paid,
+        "outstanding_balance": outstanding_balance,
+    }

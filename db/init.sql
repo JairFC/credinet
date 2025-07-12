@@ -7,6 +7,7 @@ CREATE TABLE IF NOT EXISTS associates (
     name VARCHAR(150) UNIQUE NOT NULL,
     contact_person VARCHAR(150),
     contact_email VARCHAR(100) UNIQUE,
+    default_commission_rate NUMERIC(5, 2) NOT NULL DEFAULT 5.00, -- Tasa de comisión por defecto
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -59,11 +60,14 @@ CREATE TABLE IF NOT EXISTS payments (
 -- =============================================================================
 
 -- Asociados de ejemplo
-INSERT INTO associates (name, contact_person, contact_email) VALUES
-('Asociado Central', 'Ana García', 'ana.garcia@central.com'),
-('Promotores del Norte', 'Carlos Sánchez', 'carlos.sanchez@norte.com'),
-('Créditos del Sureste', 'Beatriz López', 'beatriz.lopez@sureste.com')
-ON CONFLICT (name) DO NOTHING;
+INSERT INTO associates (name, contact_person, contact_email, default_commission_rate) VALUES
+('Asociado Central', 'Ana García', 'ana.garcia@central.com', 5.50),
+('Promotores del Norte', 'Carlos Sánchez', 'carlos.sanchez@norte.com', 6.00),
+('Créditos del Sureste', 'Beatriz López', 'beatriz.lopez@sureste.com', 4.75)
+ON CONFLICT (name) DO UPDATE SET
+    contact_person = EXCLUDED.contact_person,
+    contact_email = EXCLUDED.contact_email,
+    default_commission_rate = EXCLUDED.default_commission_rate;
 
 -- Contraseña para todos los usuarios de prueba: Sparrow20
 -- Hash: $2b$12$nQ5r/gNN1inmSLCYEvUtCOfo4G27JbRwSDAe7/IX40tVtAdRc78q.
@@ -96,3 +100,45 @@ INSERT INTO payments (loan_id, amount_paid, payment_date) VALUES
 (3, 439.69, CURRENT_DATE - INTERVAL '8 months'),
 (3, 439.69, CURRENT_DATE - INTERVAL '7 months'),
 (4, 270.89, CURRENT_DATE - INTERVAL '1 month');
+
+-- =============================================================================
+-- MÁS DATOS DE EJEMPLO (POBLACIÓN ADICIONAL)
+-- =============================================================================
+
+INSERT INTO loans (client_id, associate_id, amount, interest_rate, commission_rate, term_months, payment_frequency, status) VALUES
+-- Préstamo para el asociado 3
+(4, 3, 12000.00, 10.0, 4.5, 24, 'mensual', 'active'),
+-- Préstamo para el cliente 2, asociado 2
+(2, 2, 3000.00, 22.5, 8.0, 12, 'quincenal', 'active'),
+-- Préstamo para el cliente 3, sin asociado
+(3, null, 1500.00, 25.0, 0.0, 6, 'quincenal', 'pending'),
+-- Préstamo pagado para el cliente 4
+(4, 1, 4000.00, 14.0, 5.5, 12, 'mensual', 'paid'),
+-- Préstamo en mora (defaulted) para el cliente 1
+(1, 2, 6000.00, 19.0, 6.5, 18, 'mensual', 'defaulted');
+
+-- Pagos para los nuevos préstamos
+INSERT INTO payments (loan_id, amount_paid, payment_date) VALUES
+-- Pagos para el préstamo 5 (cliente 4, asociado 3)
+(5, 554.81, CURRENT_DATE - INTERVAL '2 months'),
+(5, 554.81, CURRENT_DATE - INTERVAL '1 month'),
+-- Pagos para el préstamo 6 (cliente 2, asociado 2)
+(6, 282.06, CURRENT_DATE - INTERVAL '45 days'),
+(6, 282.06, CURRENT_DATE - INTERVAL '30 days'),
+(6, 282.06, CURRENT_DATE - INTERVAL '15 days'),
+-- Pagos para el préstamo 8 (pagado)
+(8, 359.15, '2024-01-15'),
+(8, 359.15, '2024-02-15'),
+(8, 359.15, '2024-03-15'),
+(8, 359.15, '2024-04-15'),
+(8, 359.15, '2024-05-15'),
+(8, 359.15, '2024-06-15'),
+(8, 359.15, '2024-07-15'),
+(8, 359.15, '2024-08-15'),
+(8, 359.15, '2024-09-15'),
+(8, 359.15, '2024-10-15'),
+(8, 359.15, '2024-11-15'),
+(8, 359.15, '2024-12-15'),
+-- Pagos para el préstamo 9 (en mora)
+(9, 442.89, CURRENT_DATE - INTERVAL '6 months'),
+(9, 442.89, CURRENT_DATE - INTERVAL '5 months');
