@@ -40,6 +40,17 @@ El proyecto está completamente containerizado, lo que simplifica enormemente la
     -   **Contraseña:** `credinet_pass`
     -   **Base de datos:** `credinet_db`
 
+## Aplicando Cambios (Flujo de Trabajo Estándar)
+
+Debido a la forma en que Docker maneja los volúmenes y el código fuente, el método más confiable para asegurar que **cualquier cambio** (backend, frontend, o `init.sql`) se aplique correctamente es realizar un reinicio completo del entorno.
+
+**Comando de Actualización Universal:**
+```bash
+docker compose down --volumes && docker compose up --build -d
+```
+
+Este comando garantiza que te encuentres en un estado limpio y actualizado. Úsalo siempre que realices cambios en el código o en la configuración.
+
 ## Deteniendo el Entorno
 
 -   Para detener los contenedores, presiona `Ctrl + C` en la terminal donde ejecutaste `docker compose up`.

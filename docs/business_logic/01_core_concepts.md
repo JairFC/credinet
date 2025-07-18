@@ -37,7 +37,13 @@ El ecosistema de Credinet gira en torno a cinco entidades interconectadas:
 -   **Regla 2 (Anulación por Préstamo):** Al crear un `Préstamo`, la tasa de comisión se puede anular para ese préstamo específico. El valor del formulario se pre-rellena con la tasa por defecto del asociado, pero puede ser modificado por un usuario con permisos.
 -   **Regla 3 (Inmutabilidad):** La `commission_rate` guardada en el `Préstamo` es la tasa final y contractual para ese préstamo. No cambia si la tasa por defecto del asociado se actualiza en el futuro.
 
-### 2.2. Cálculo de Saldos de Préstamos
+### 2.2. Sistema de Niveles de Asociado
+
+-   **Regla 1 (Niveles y Límites):** Cada entidad `Associate` tiene asignado un `level` (ej. Plata, Oro). Cada nivel tiene un `max_loan_amount` (límite de préstamo) asociado.
+-   **Regla 2 (Validación de Límite):** Al crear un préstamo originado por un asociado, el sistema debe validar que el monto del préstamo no exceda el `max_loan_amount` del nivel de ese asociado.
+-   **Regla 3 (Promoción de Nivel):** Existe un plan para desarrollar un sistema que pueda sugerir o automatizar la promoción de un asociado a un nivel superior basado en su rendimiento y buen comportamiento de pago.
+
+### 2.3. Cálculo de Saldos de Préstamos
 
 -   **Regla 1 (Saldo Pendiente - Lógica Actual):** El `outstanding_balance` (saldo pendiente) de un préstamo se calcula actualmente utilizando una **tabla de amortización teórica**.
     -   **Fórmula:** `Saldo Pendiente = (Monto de Cuota Teórica * Número Total de Cuotas) - Total Pagado`
