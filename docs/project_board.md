@@ -11,6 +11,7 @@ Este tablero utiliza el formato Kanban en Markdown para rastrear el progreso de 
 
 ## Pendiente (To Do)
 
+-   **[HECHO - PORTAL CLIENTE]:** Implementar vista de tabla de amortización.
 -   **[PAGOS - UI]:** Implementar UI para añadir y ver pagos en la vista de "Detalle del Préstamo".
 -   **[PORTAL CLIENTE - BACKEND]:** Añadir el rol `cliente` al `ENUM` en `init.sql` y a los esquemas de la API.
 -   **[PORTAL CLIENTE - BACKEND]:** Crear un endpoint (`/api/me/dashboard` o similar) que devuelva los datos específicos para el dashboard del cliente.
