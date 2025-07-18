@@ -11,16 +11,26 @@ Este tablero utiliza el formato Kanban en Markdown para rastrear el progreso de 
 
 ## Pendiente (To Do)
 
--   **[HECHO - PORTAL CLIENTE]:** Implementar vista de tabla de amortización.
+### Épica: Modernización de Perfiles de Usuario
+
+-   **[REFACTOR - DB]:** Fusionar la tabla `clients` en `users` y añadir los nuevos campos.
+-   **[FEATURE - DB]:** Crear la nueva tabla `beneficiaries` y su relación con `users`.
+-   **[REFACTOR - BACKEND]:** Adaptar toda la API para usar el nuevo modelo de `users`.
+-   **[FEATURE - BACKEND]:** Crear el CRUD de la API para `/api/users/{id}/beneficiaries`.
+-   **[FEATURE - FRONTEND]:** Mover la funcionalidad de registro a un modal en la página de administración de usuarios.
+-   **[FEATURE - FRONTEND]:** Implementar la UI para gestionar beneficiarios en el formulario de usuario.
+-   **[FEATURE - CURP]:** Implementar el generador de CURP en el frontend.
+-   **[FEATURE - TELÉFONO]:** Implementar input masking en el frontend.
+-   **[FEATURE - DIRECCIÓN]:** Implementar autocompletado de dirección.
+-   **[FEATURE - FOTO PERFIL]:** Implementar subida de fotos de perfil.
+-   **[FEATURE - FECHA NACIMIENTO]:** Implementar selector de calendario.
+
+### Otras Tareas
+
+-   **[SEGURIDAD]:** Restringir el endpoint de registro y mover la funcionalidad a la vista de administrador.
 -   **[PAGOS - UI]:** Implementar UI para añadir y ver pagos en la vista de "Detalle del Préstamo".
--   **[PORTAL CLIENTE - BACKEND]:** Añadir el rol `cliente` al `ENUM` en `init.sql` y a los esquemas de la API.
--   **[PORTAL CLIENTE - BACKEND]:** Crear un endpoint (`/api/me/dashboard` o similar) que devuelva los datos específicos para el dashboard del cliente.
--   **[PORTAL CLIENTE - BACKEND]:** Asegurar que los endpoints existentes (`/api/loans`, `/api/payments`) filtren correctamente para devolver solo los datos del cliente autenticado si su rol es `cliente`.
--   **[PORTAL CLIENTE - FRONTEND]:** Crear la página `ClientDashboardPage.jsx`.
--   **[PORTAL CLIENTE - FRONTEND]:** Modificar `DashboardPage.jsx` para redirigir a `ClientDashboardPage.jsx` si el rol del usuario es `cliente`.
--   **[PORTAL CLIENTE - FRONTEND]:** Crear las vistas de detalle de préstamos y pagos para el cliente.
--   **[MEJORA]:** Añadir paginación a las listas de la API (clientes, asociados, préstamos) para mejorar el rendimiento.
--   **[MEJORA]:** Mejorar la gestión de errores y feedback al usuario en el frontend.
+-   **[MEJORA]:** Añadir paginación a las listas de la API.
+-   **[MEJORA]:** Mejorar la gestión de errores en el frontend.
 -   **[CALIDAD]:** Añadir tests unitarios y de integración para el backend.
 -   **[CALIDAD]:** Añadir tests para el frontend.
 

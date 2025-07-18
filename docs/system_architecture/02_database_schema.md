@@ -26,34 +26,47 @@ Almacena la informaci��n de los asociados que originan préstamos.
 - `contact_email`: VARCHAR(100) UNIQUE
 - `default_commission_rate`: NUMERIC(5, 2) NOT NULL - Tasa de comisión por defecto.
 
-### `users`
-Almacena las credenciales y el rol de cada usuario.
+### `users` (Tabla Maestra de Personas)
+Almacena la información para cualquier individuo en el sistema (administradores, asociados, clientes). Reemplaza a la antigua tabla `clients`.
 - `id`: SERIAL PRIMARY KEY
 - `username`: VARCHAR(50) UNIQUE NOT NULL
 - `password_hash`: VARCHAR(255) NOT NULL
 - `role`: `user_role` NOT NULL
-- `associate_id`: INTEGER REFERENCES `associates(id)` - **Requerido si el rol es `asociado`**.
-- **Propuesta para rol `cliente`:** Se podría añadir una columna `client_id` o gestionar la relación desde la tabla `clients`.
-
-### `clients`
-Almacena la información de los clientes finales.
-- `id`: SERIAL PRIMARY KEY
-- `user_id`: INTEGER REFERENCES `users(id)` - **Actualmente opcional**. Para el portal de clientes, este campo se volverá **obligatorio** para los clientes que se autogestionan, vinculando al cliente con su registro de usuario.
 - `first_name`: VARCHAR(100) NOT NULL
 - `last_name`: VARCHAR(100) NOT NULL
-- `email`: VARCHAR(100) UNIQUE
+- `email`: VARCHAR(100) UNIQUE NOT NULL
+- `phone_number`: VARCHAR(10) NOT NULL
+- `birth_date`: DATE
+- `curp`: VARCHAR(18) UNIQUE
+- `profile_picture_url`: VARCHAR(255)
+- `address_street`: VARCHAR(255)
+- `address_ext_num`: VARCHAR(20)
+- `address_int_num`: VARCHAR(20)
+- `address_colonia`: VARCHAR(100)
+- `address_zip_code`: VARCHAR(10)
+- `address_state`: VARCHAR(50)
+- `associate_id`: INTEGER REFERENCES `associates(id)`
+- `updated_at`: TIMESTAMPTZ
+
+### `beneficiaries` (Nueva Tabla)
+Almacena los beneficiarios asociados a un usuario.
+- `id`: SERIAL PRIMARY KEY
+- `user_id`: INTEGER NOT NULL REFERENCES `users(id)`
+- `full_name`: VARCHAR(255) NOT NULL
+- `relationship`: VARCHAR(50) NOT NULL
+- `phone_number`: VARCHAR(10) NOT NULL
+- `updated_at`: TIMESTAMPTZ
+
+### `clients`
+**Esta tabla será eliminada.** Su información se fusionará en la tabla `users`.
 
 ### `loans`
 Contiene la información de los préstamos.
 - `id`: SERIAL PRIMARY KEY
-- `client_id`: INTEGER NOT NULL REFERENCES `clients(id)`
-- `associate_id`: INTEGER REFERENCES `associates(id)` - Asociado que originó el préstamo.
-- `amount`: NUMERIC(10, 2) NOT NULL
-- `interest_rate`: NUMERIC(5, 2) NOT NULL
-- `commission_rate`: NUMERIC(5, 2) NOT NULL - Tasa de comisión final para este préstamo.
-- `term_months`: INTEGER NOT NULL
-- `payment_frequency`: VARCHAR(10) NOT NULL - ('quincenal', 'mensual')
-- `status`: VARCHAR(20) NOT NULL - ('pending', 'active', 'paid', 'defaulted')
+- `user_id`: INTEGER NOT NULL REFERENCES `users(id)` - **Anteriormente `client_id`**.
+- `associate_id`: INTEGER REFERENCES `associates(id)`
+- ... (resto de los campos sin cambios)
+- `updated_at`: TIMESTAMPTZ
 
 ### `payments`
 Registra cada pago realizado a un préstamo.
