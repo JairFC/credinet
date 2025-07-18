@@ -29,7 +29,7 @@ class LoanResponse(LoanBase):
     outstanding_balance: float
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 class PaymentCreate(BaseModel):
     amount_paid: Optional[float] = Field(None, gt=0)
@@ -79,3 +79,25 @@ class PaymentUpdate(BaseModel):
 
 class LoanWithPaymentsResponse(LoanResponse):
     payments: List[PaymentResponse]
+
+# Schemas for Client Dashboard
+class ClientDashboardLoan(BaseModel):
+    id: int
+    amount: float
+    status: str
+    outstanding_balance: float
+
+class ClientDashboardPayment(BaseModel):
+    id: int
+    loan_id: int
+    amount_paid: float
+    payment_date: date
+
+class ClientDashboardSummary(BaseModel):
+    active_loans_count: int
+    total_outstanding_balance: float
+
+class ClientDashboardResponse(BaseModel):
+    summary: ClientDashboardSummary
+    loans: List[ClientDashboardLoan]
+    recent_payments: List[ClientDashboardPayment]

@@ -1,29 +1,41 @@
 # backend/app/common/database.py
 import asyncpg
 import os
+from contextlib import asynccontextmanager
+from app.core.config import settings
 
-DB_CONFIG = {
-    "user": os.getenv("POSTGRES_USER"),
-    "password": os.getenv("POSTGRES_PASSWORD"),
-    "database": os.getenv("POSTGRES_DB"),
-    "host": os.getenv("POSTGRES_HOST"),
-}
+# Esta configuración se usará por defecto
+DATABASE_URL = f"postgresql://{os.getenv('POSTGRES_USER')}:{os.getenv('POSTGRES_PASSWORD')}@{os.getenv('POSTGRES_HOST')}/{os.getenv('POSTGRES_DB')}"
 
 db_pool = None
 
-async def get_db_connection():
-    return await db_pool.acquire()
-
-async def close_db_connection(conn):
-    await db_pool.release(conn)
-
 async def create_db_pool():
     global db_pool
-    db_pool = await asyncpg.create_pool(**DB_CONFIG)
-    print("✅ Pool de conexiones a la base de datos creado.")
+    if db_pool is None:
+        # Si la variable de entorno TESTING está puesta, usa la URL de prueba.
+        url = settings.TEST_DATABASE_URL if os.getenv('TESTING') else DATABASE_URL
+        db_pool = await asyncpg.create_pool(url)
+        print(f"✅ Pool de conexiones a la base de datos creado para: {url.split('@')[-1]}")
 
 async def close_db_pool():
     global db_pool
     if db_pool:
         await db_pool.close()
         print("✅ Pool de conexiones a la base de datos cerrado.")
+
+@asynccontextmanager
+async def get_db_context():
+    if db_pool is None:
+        await create_db_pool()
+    
+    conn = None
+    try:
+        conn = await db_pool.acquire()
+        yield conn
+    finally:
+        if conn:
+            await db_pool.release(conn)
+
+async def get_db():
+    async with get_db_context() as conn:
+        yield conn

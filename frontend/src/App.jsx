@@ -16,6 +16,7 @@ import LoanPaymentsPage from './pages/LoanPaymentsPage';
 import PaymentDetailsPage from './pages/PaymentDetailsPage';
 import LoanDetailsPage from './pages/LoanDetailsPage';
 import LoansWithPaymentsPage from './pages/LoansWithPaymentsPage';
+import LoansPage from './pages/LoansPage'; // Importar la nueva página
 import ProtectedRoute from './components/ProtectedRoute';
 import Footer from './components/Footer';
 import Navbar from './components/Navbar';
@@ -131,6 +132,15 @@ function App() {
               element={
                 <ProtectedRoute>
                   <LoansWithPaymentsPage />
+                </ProtectedRoute>
+              }
+            />
+            {/* Nueva ruta para la gestión de préstamos */}
+            <Route
+              path="/loans"
+              element={
+                <ProtectedRoute>
+                  <LoansPage />
                 </ProtectedRoute>
               }
             />

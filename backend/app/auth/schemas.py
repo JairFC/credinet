@@ -1,12 +1,13 @@
 from pydantic import BaseModel, ConfigDict
 from typing import Optional
+from .roles import UserRole
 
 class UserBase(BaseModel):
     username: str
 
 class UserCreate(UserBase):
     password: str
-    role: str = 'asociado'
+    role: UserRole = UserRole.ASOCIADO
     associate_id: Optional[int] = None
 
 class UserUpdate(BaseModel):
@@ -14,14 +15,14 @@ class UserUpdate(BaseModel):
 
 class UserInDB(UserBase):
     id: int
-    role: str
+    role: UserRole
     password_hash: str
     associate_id: Optional[int] = None
     model_config = ConfigDict(from_attributes=True)
 
 class UserResponse(UserBase):
     id: int
-    role: str
+    role: UserRole
     associate_id: Optional[int] = None
     model_config = ConfigDict(from_attributes=True)
 
@@ -31,5 +32,5 @@ class Token(BaseModel):
 
 class TokenData(BaseModel):
     username: Optional[str] = None
-    role: Optional[str] = None
+    role: Optional[UserRole] = None
     associate_id: Optional[int] = None

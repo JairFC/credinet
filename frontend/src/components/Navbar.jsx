@@ -20,30 +20,38 @@ const Navbar = () => {
   const { user, logoutAction } = useAuth();
   const userRole = user?.role;
 
+  // Roles con acceso a la gestión principal
+  const managementRoles = ['desarrollador', 'administrador', 'auxiliar_administrativo'];
+  const adminRoles = ['desarrollador', 'administrador'];
+
   return (
     <nav style={navStyle}>
       <div>
-        <Link to="/dashboard" style={linkStyle}>Credinet</Link>
+        <Link to={user ? "/dashboard" : "/login"} style={linkStyle}>
+          Credinet
+        </Link>
       </div>
       <div>
         {user && (
           <>
             <Link to="/dashboard" style={linkStyle}>Dashboard</Link>
-            <Link to="/clients" style={linkStyle}>Clientes</Link>
-            
-            {['desarrollador', 'administrador', 'auxiliar_administrativo'].includes(userRole) && (
-              <Link to="/associates" style={linkStyle}>Asociados</Link>
+
+            {/* Enlaces para roles de gestión */}
+            {managementRoles.includes(userRole) && (
+              <>
+                <Link to="/clients" style={linkStyle}>Clientes</Link>
+                <Link to="/associates" style={linkStyle}>Asociados</Link>
+                <Link to="/loans" style={linkStyle}>Préstamos</Link>
+              </>
             )}
 
-            {['desarrollador', 'administrador'].includes(userRole) && (
+            {/* Enlaces solo para administradores */}
+            {adminRoles.includes(userRole) && (
               <Link to="/users" style={linkStyle}>Usuarios</Link>
             )}
-
-            <Link to="/payments" style={linkStyle}>Pagos</Link>
-            <Link to="/loans_with_payments" style={linkStyle}>Préstamos con Pagos</Link>
             
-            <button onClick={logoutAction} style={{ ...linkStyle, background: 'none', border: 'none', cursor: 'pointer' }}>
-              Cerrar Sesión
+            <button onClick={logoutAction} style={{ ...linkStyle, background: 'none', border: 'none', cursor: 'pointer', marginLeft: '20px' }}>
+              Cerrar Sesión ({user.username})
             </button>
           </>
         )}
