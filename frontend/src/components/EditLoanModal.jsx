@@ -1,36 +1,45 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import apiClient from '../services/api';
+import '../pages/ClientsPage.css'; // Reutilizamos estilos para el modal
 
-const modalOverlayStyle = {
-  position: 'fixed',
-  top: 0,
-  left: 0,
-  right: 0,
-  bottom: 0,
-  backgroundColor: 'rgba(0, 0, 0, 0.7)',
-  display: 'flex',
-  justifyContent: 'center',
-  alignItems: 'center',
-  zIndex: 1000,
-};
-
-const modalContentStyle = {
-  background: 'white',
-  padding: '20px',
-  borderRadius: '5px',
-  width: '400px',
-};
-
-const EditLoanModal = ({ loan, availableAssociates, onUpdateSuccess, onClose }) => {
+const EditLoanModal = ({ loan, clients, associates, onUpdateSuccess, onClose }) => {
   const [formData, setFormData] = useState({
-    amount: String(loan.amount),
-    interest_rate: loan.interest_rate,
-    commission_rate: loan.commission_rate || 0.0,
-    term_quincenas: loan.term_months * 2, // Convertir meses a quincenas para la vista
-    associate_id: loan.associate_id || '',
-    payment_frequency: loan.payment_frequency || 'quincenal',
+    client_id: '',
+    associate_id: '',
+    amount: '',
+    interest_rate: '',
+    commission_rate: '',
+    term_months: '',
+    payment_frequency: 'quincenal',
   });
   const [error, setError] = useState('');
+
+  const isEditMode = Boolean(loan);
+
+  useEffect(() => {
+    if (isEditMode) {
+      setFormData({
+        client_id: loan.client_id || '',
+        associate_id: loan.associate_id || '',
+        amount: loan.amount || '',
+        interest_rate: loan.interest_rate || '',
+        commission_rate: loan.commission_rate || '0',
+        term_months: loan.term_months || '',
+        payment_frequency: loan.payment_frequency || 'quincenal',
+      });
+    } else {
+      // Lógica para pre-rellenar comisión si se selecciona un asociado
+      const selectedAssociate = associates.find(a => a.id === Number(formData.associate_id));
+      if (selectedAssociate) {
+        setFormData(prev => ({
+          ...prev,
+          commission_rate: selectedAssociate.default_commission_rate
+        }));
+      } else {
+         setFormData(prev => ({ ...prev, commission_rate: '0' }));
+      }
+    }
+  }, [loan, isEditMode, formData.associate_id, associates]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -40,87 +49,84 @@ const EditLoanModal = ({ loan, availableAssociates, onUpdateSuccess, onClose }) 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+
+    // Conversión a tipos numéricos correctos
+    const submissionData = {
+      ...formData,
+      client_id: Number(formData.client_id),
+      associate_id: formData.associate_id ? Number(formData.associate_id) : null,
+      amount: parseFloat(formData.amount),
+      interest_rate: parseFloat(formData.interest_rate),
+      commission_rate: parseFloat(formData.commission_rate),
+      term_months: parseInt(formData.term_months, 10),
+    };
+
     try {
-      const updateData = {
-        amount: parseFloat(formData.amount),
-        interest_rate: parseFloat(formData.interest_rate),
-        commission_rate: parseFloat(formData.commission_rate) || 0.0,
-        term_months: parseInt(formData.term_quincenas) / 2, // Convertir quincenas a meses para la API
-        associate_id: formData.associate_id ? parseInt(formData.associate_id) : null,
-        payment_frequency: formData.payment_frequency,
-      };
-      const response = await apiClient.put(`/loans/${loan.id}`, updateData);
-      onUpdateSuccess(response.data);
+      if (isEditMode) {
+        await apiClient.put(`/loans/${loan.id}`, submissionData);
+      } else {
+        await apiClient.post('/loans/', submissionData);
+      }
+      onUpdateSuccess();
     } catch (err) {
-      setError(err.response?.data?.detail || 'Error al actualizar el préstamo.');
+      setError(err.response?.data?.detail || `Error al ${isEditMode ? 'actualizar' : 'crear'} el préstamo.`);
     }
   };
 
   return (
-    <div style={modalOverlayStyle} onClick={onClose}>
-      <div style={modalContentStyle} onClick={(e) => e.stopPropagation()}>
-        <h2>Editar Préstamo (ID: {loan.id})</h2>
-        <form onSubmit={handleSubmit} className="client-form" style={{ flexDirection: 'column', alignItems: 'stretch' }}>
+    <div className="modal-backdrop">
+      <div className="modal-content">
+        <h2>{isEditMode ? 'Editar' : 'Crear'} Préstamo</h2>
+        <form onSubmit={handleSubmit}>
           <div className="form-group">
-            <label htmlFor="edit-amount">Monto</label>
-            <div className="input-with-adornment">
-              <span className="adornment adornment-start">$</span>
-              <input
-                id="edit-amount"
-                name="amount"
-                type="text"
-                className="has-start-adornment"
-                value={formData.amount.replace(/\B(?=(\d{3})+(?!\d))/g, ",")}
-                onChange={(e) => {
-                  const rawValue = e.target.value.replace(/,/g, '');
-                  if (/^\d*$/.test(rawValue)) {
-                    handleChange({ target: { name: 'amount', value: rawValue } });
-                  }
-                }}
-                placeholder="Monto" required />
-            </div>
-          </div>
-          <div className="form-group">
-            <label htmlFor="edit-interestRate">Tasa de Interés</label>
-            <div className="input-with-adornment">
-              <input id="edit-interestRate" name="interest_rate" type="number" className="has-end-adornment" value={formData.interest_rate} onChange={handleChange} placeholder="Tasa de Interés" required />
-              <span className="adornment adornment-end">%</span>
-            </div>
-          </div>
-          <div className="form-group">
-            <label htmlFor="edit-commissionRate">Tasa de Comisión</label>
-            <div className="input-with-adornment">
-              <input id="edit-commissionRate" name="commission_rate" type="number" className="has-end-adornment" value={formData.commission_rate} onChange={handleChange} placeholder="Tasa de Comisión" />
-              <span className="adornment adornment-end">%</span>
-            </div>
-          </div>
-          <div className="form-group">
-            <label htmlFor="edit-termQuincenas">Plazo (quincenas)</label>
-            <div className="input-with-adornment">
-              <input id="edit-termQuincenas" name="term_quincenas" type="number" className="has-end-adornment" value={formData.term_quincenas} onChange={handleChange} placeholder="Plazo" required />
-              <span className="adornment adornment-end">quincenas</span>
-            </div>
-          </div>
-          <div className="form-group">
-            <label htmlFor="edit-associate">Asociado</label>
-            <select id="edit-associate" name="associate_id" value={formData.associate_id} onChange={handleChange}>
-              <option value="">-- Sin Asociado --</option>
-              {Array.isArray(availableAssociates) && availableAssociates.map(assoc => (
-                <option key={assoc.id} value={assoc.id}>{assoc.name}</option>
+            <label>Cliente:</label>
+            <select name="client_id" value={formData.client_id} onChange={handleChange} required disabled={isEditMode}>
+              <option value="">Seleccione un cliente</option>
+              {clients.map(c => (
+                <option key={c.id} value={c.id}>{c.first_name} {c.last_name}</option>
               ))}
             </select>
           </div>
           <div className="form-group">
-            <label htmlFor="edit-paymentFrequency">Frecuencia de Pago</label>
-            <select id="edit-paymentFrequency" name="payment_frequency" value={formData.payment_frequency} onChange={handleChange}>
+            <label>Asociado (Opcional):</label>
+            <select name="associate_id" value={formData.associate_id} onChange={handleChange}>
+              <option value="">Ninguno</option>
+              {associates.map(a => (
+                <option key={a.id} value={a.id}>{a.name}</option>
+              ))}
+            </select>
+          </div>
+          <div className="form-group">
+            <label>Monto:</label>
+            <input type="number" name="amount" value={formData.amount} onChange={handleChange} required />
+          </div>
+          <div className="form-group">
+            <label>Tasa de Interés (% Anual):</label>
+            <input type="number" step="0.01" name="interest_rate" value={formData.interest_rate} onChange={handleChange} required />
+          </div>
+          <div className="form-group">
+            <label>Tasa de Comisión (%):</label>
+            <input type="number" step="0.01" name="commission_rate" value={formData.commission_rate} onChange={handleChange} required />
+          </div>
+          <div className="form-group">
+            <label>Plazo (Meses):</label>
+            <input type="number" name="term_months" value={formData.term_months} onChange={handleChange} required />
+          </div>
+          <div className="form-group">
+            <label>Frecuencia de Pago:</label>
+            <select name="payment_frequency" value={formData.payment_frequency} onChange={handleChange} required>
               <option value="quincenal">Quincenal</option>
               <option value="mensual">Mensual</option>
             </select>
           </div>
-          <button type="submit" style={{ marginTop: '10px' }}>Guardar Cambios</button>
-          <button type="button" onClick={onClose} style={{ marginTop: '5px' }}>Cancelar</button>
+
+          {error && <p className="error-message">{error}</p>}
+
+          <div className="modal-actions">
+            <button type="submit" className="button-primary">{isEditMode ? 'Actualizar' : 'Crear'}</button>
+            <button type="button" onClick={onClose}>Cancelar</button>
+          </div>
         </form>
-        {error && <p style={{ color: 'red' }}>{error}</p>}
       </div>
     </div>
   );

@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from typing import List
 from app.auth.jwt import require_role, require_roles, get_current_user
 from app.auth.schemas import UserInDB
+from app.auth.roles import UserRole
 from app.common import database
 from . import schemas
 from app.loans import utils as loan_utils
@@ -13,10 +14,7 @@ from app.clients.schemas import ClientResponse, ClientInDashboardResponse
 
 router = APIRouter()
 
-
-# ... (las rutas create, get, update, delete de asociados se mantienen igual) ...
-
-@router.post("/", response_model=schemas.AssociateResponse, status_code=status.HTTP_201_CREATED, dependencies=[Depends(require_roles(["administrador", "auxiliar_administrativo"]))])
+@router.post("/", response_model=schemas.AssociateResponse, status_code=status.HTTP_201_CREATED, dependencies=[Depends(require_roles([UserRole.ADMINISTRADOR, UserRole.AUXILIAR_ADMINISTRATIVO]))])
 async def create_associate(
     associate: schemas.AssociateCreate,
 ):
@@ -37,13 +35,13 @@ async def create_associate(
                 detail=f"Ya existe un asociado con ese nombre o email."
             )
 
-@router.get("/", response_model=List[schemas.AssociateResponse], dependencies=[Depends(require_roles(["administrador", "auxiliar_administrativo", "asociado"]))])
+@router.get("/", response_model=List[schemas.AssociateResponse], dependencies=[Depends(require_roles([UserRole.ADMINISTRADOR, UserRole.AUXILIAR_ADMINISTRATIVO, UserRole.ASOCIADO]))])
 async def get_associates():
     async with database.db_pool.acquire() as conn:
         associate_records = await conn.fetch("SELECT * FROM associates ORDER BY name")
         return [dict(record) for record in associate_records]
 
-@router.get("/{associate_id}", response_model=schemas.AssociateResponse, dependencies=[Depends(require_roles(["administrador", "auxiliar_administrativo", "asociado"]))])
+@router.get("/{associate_id}", response_model=schemas.AssociateResponse, dependencies=[Depends(require_roles([UserRole.ADMINISTRADOR, UserRole.AUXILIAR_ADMINISTRATIVO, UserRole.ASOCIADO]))])
 async def get_associate(
     associate_id: int,
 ):
@@ -53,7 +51,7 @@ async def get_associate(
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Asociado con id {associate_id} no encontrado.")
         return dict(associate_record)
 
-@router.get("/{associate_id}/summary", response_model=schemas.AssociateSummaryResponse, dependencies=[Depends(require_roles(["administrador", "auxiliar_administrativo", "asociado"]))])
+@router.get("/{associate_id}/summary", response_model=schemas.AssociateSummaryResponse, dependencies=[Depends(require_roles([UserRole.ADMINISTRADOR, UserRole.AUXILIAR_ADMINISTRATIVO, UserRole.ASOCIADO]))])
 async def get_associate_summary(
     associate_id: int,
 ):
@@ -105,7 +103,7 @@ async def get_associate_summary(
 
         return schemas.AssociateSummaryResponse(**summary)
 
-@router.put("/{associate_id}", response_model=schemas.AssociateResponse, dependencies=[Depends(require_roles(["administrador", "auxiliar_administrativo"]))])
+@router.put("/{associate_id}", response_model=schemas.AssociateResponse, dependencies=[Depends(require_roles([UserRole.ADMINISTRADOR, UserRole.AUXILIAR_ADMINISTRATIVO]))])
 async def update_associate(
     associate_id: int,
     associate_data: schemas.AssociateUpdate,
@@ -126,7 +124,7 @@ async def update_associate(
         except asyncpg.exceptions.UniqueViolationError:
             raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=f"El nombre o email ya está en uso.")
 
-@router.delete("/{associate_id}", status_code=status.HTTP_204_NO_CONTENT, dependencies=[Depends(require_role("administrador"))])
+@router.delete("/{associate_id}", status_code=status.HTTP_204_NO_CONTENT, dependencies=[Depends(require_role(UserRole.ADMINISTRADOR))])
 async def delete_associate(
     associate_id: int,
 ):
@@ -141,7 +139,7 @@ class AssociateDashboardData(BaseModel):
     loans: List[LoanResponse]
     clients: List[ClientInDashboardResponse]
 
-@router.get("/dashboard", response_model=AssociateDashboardData, dependencies=[Depends(require_role("asociado"))])
+@router.get("/dashboard", response_model=AssociateDashboardData, dependencies=[Depends(require_role(UserRole.ASOCIADO))])
 async def get_associate_dashboard_data(
     current_user: UserInDB = Depends(get_current_user)
 ):

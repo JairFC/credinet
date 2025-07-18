@@ -1,34 +1,33 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import apiClient from '../services/api';
+import { useAuth } from '../context/AuthContext';
 import EditClientModal from '../components/EditClientModal';
-import './ClientsPage.css'; // Importar el archivo CSS
+import './ClientsPage.css';
 
 const ClientsPage = () => {
+  const { user } = useAuth();
   const [clients, setClients] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  // Estado para el formulario de nuevo cliente
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
-  const [users, setUsers] = useState([]);
-  const [selectedUser, setSelectedUser] = useState('');
   const [formError, setFormError] = useState('');
   const [editingClient, setEditingClient] = useState(null);
 
-  const fetchClientsAndUsers = async () => {
+  // El rol 'asociado' no puede crear ni editar clientes.
+  const canManage = user && user.role !== 'asociado';
+
+  const fetchClients = async () => {
     try {
       setLoading(true);
-      const [clientsRes, usersRes] = await Promise.all([
-        apiClient.get('/clients/'),
-        apiClient.get('/auth/users')
-      ]);
-      setClients(clientsRes.data);
-      setUsers(usersRes.data);
+      // El backend ahora filtra por el token, la llamada es la misma.
+      const response = await apiClient.get('/clients/');
+      setClients(response.data);
     } catch (err) {
-      setError('No se pudieron cargar los datos.');
+      setError('No se pudieron cargar los clientes.');
       console.error(err);
     } finally {
       setLoading(false);
@@ -36,11 +35,12 @@ const ClientsPage = () => {
   };
 
   useEffect(() => {
-    fetchClientsAndUsers();
+    fetchClients();
   }, []);
 
   const handleCreateClient = async (e) => {
     e.preventDefault();
+    if (!canManage) return; // Doble seguridad
     setFormError('');
     try {
       const clientData = {
@@ -48,38 +48,35 @@ const ClientsPage = () => {
         last_name: lastName,
         email: email,
       };
-      if (selectedUser) {
-        clientData.user_id = parseInt(selectedUser);
-      }
       await apiClient.post('/clients/', clientData);
-      // Limpiar formulario y recargar la lista
       setFirstName('');
       setLastName('');
       setEmail('');
-      setSelectedUser('');
-      fetchClientsAndUsers();
+      fetchClients();
     } catch (err) {
       setFormError(err.response?.data?.detail || 'Error al crear el cliente.');
     }
   };
 
   const handleDeleteClient = async (clientId) => {
-    // Pedir confirmación al usuario
-    if (!window.confirm('¿Estás seguro de que quieres eliminar este cliente? Esta acción no se puede deshacer.')) {
+    if (!canManage || (user && user.role === 'auxiliar_administrativo')) {
+      alert('No tienes permiso para eliminar clientes.');
       return;
     }
-
+    if (!window.confirm('¿Estás seguro de que quieres eliminar este cliente?')) {
+      return;
+    }
     try {
       await apiClient.delete(`/clients/${clientId}`);
-      fetchClients(); // Recargar la lista de clientes
+      fetchClients();
     } catch (err) {
       setError(err.response?.data?.detail || 'No se pudo eliminar el cliente.');
     }
   };
 
   const handleUpdateSuccess = () => {
-    setEditingClient(null); // Cierra el modal
-    fetchClients(); // Recarga la lista
+    setEditingClient(null);
+    fetchClients();
   };
 
   return (
@@ -87,22 +84,19 @@ const ClientsPage = () => {
       <Link to="/dashboard" className="back-link">← Volver al Dashboard</Link>
       <h1>Gestión de Clientes</h1>
       
-      <h2>Añadir Nuevo Cliente</h2>
-      <form onSubmit={handleCreateClient} className="client-form">
-        <input type="text" value={firstName} onChange={(e) => setFirstName(e.target.value)} placeholder="Nombre" required />
-        <input type="text" value={lastName} onChange={(e) => setLastName(e.target.value)} placeholder="Apellido" required />
-        <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email" />
-        <select value={selectedUser} onChange={(e) => setSelectedUser(e.target.value)}>
-          <option value="">-- Asignar a Usuario (opcional) --</option>
-          {users.map(user => (
-            <option key={user.id} value={user.id}>{user.username}</option>
-          ))}
-        </select>
-        <button type="submit">Crear Cliente</button>
-        {formError && <p style={{ color: 'red' }}>{formError}</p>}
-      </form>
-
-      <hr />
+      {canManage && (
+        <>
+          <h2>Añadir Nuevo Cliente</h2>
+          <form onSubmit={handleCreateClient} className="client-form">
+            <input type="text" value={firstName} onChange={(e) => setFirstName(e.target.value)} placeholder="Nombre" required />
+            <input type="text" value={lastName} onChange={(e) => setLastName(e.target.value)} placeholder="Apellido" required />
+            <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email" />
+            <button type="submit">Crear Cliente</button>
+            {formError && <p style={{ color: 'red' }}>{formError}</p>}
+          </form>
+          <hr />
+        </>
+      )}
 
       <h2>Lista de Clientes</h2>
       {loading && <p>Cargando clientes...</p>}
@@ -128,18 +122,23 @@ const ClientsPage = () => {
               <td>{client.associate_name || 'N/A'}</td>
               <td className="actions-cell">
                 <Link to={`/clients/${client.id}/loans`}><button>Préstamos</button></Link>
-                <button onClick={() => setEditingClient(client)} style={{ marginLeft: '5px' }}>Editar</button>
-                <button onClick={() => handleDeleteClient(client.id)} style={{ marginLeft: '5px' }}>Eliminar</button>
+                {canManage && (
+                  <>
+                    <button onClick={() => setEditingClient(client)} style={{ marginLeft: '5px' }}>Editar</button>
+                    {user.role !== 'auxiliar_administrativo' && (
+                       <button onClick={() => handleDeleteClient(client.id)} style={{ marginLeft: '5px' }}>Eliminar</button>
+                    )}
+                  </>
+                )}
               </td>
             </tr>
           ))}
         </tbody>
       </table>
 
-      {editingClient && (
+      {editingClient && canManage && (
         <EditClientModal
           client={editingClient}
-          users={users}
           onUpdateSuccess={handleUpdateSuccess}
           onClose={() => setEditingClient(null)}
         />

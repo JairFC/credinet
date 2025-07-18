@@ -1,40 +1,28 @@
-# Arquitectura del Proyecto Credinet
+# Bienvenido a la Documentación de Credinet
 
-Credinet es una aplicación web full-stack diseñada para la gestión de préstamos, clientes y asociados. Sigue una arquitectura moderna de tres capas, completamente containerizada con Docker para un desarrollo y despliegue consistentes.
+Este directorio es el "cerebro" del proyecto Credinet. Contiene toda la información necesaria para entender, operar y extender el sistema. Está diseñado para ser la **única fuente de verdad** para todos los colaboradores, ya sean humanos o agentes de IA.
 
-## Componentes Principales
+## ¿Qué Buscas? Guía Rápida
 
-1.  **Frontend:**
-    *   **Framework:** React (con Vite)
-    *   **Lenguaje:** JavaScript (JSX)
-    *   **Descripción:** Una aplicación de página única (SPA) que consume la API del backend. Es responsable de toda la interfaz de usuario.
+-   **"Quiero entender cómo funciona el negocio (las reglas, los roles, los procesos)."**
+    -   **Empieza aquí:** Lee los documentos en la carpeta `business_logic/` en orden numérico. Son la base de todo.
 
-2.  **Backend:**
-    *   **Framework:** FastAPI
-    *   **Lenguaje:** Python 3.11
-    *   **Descripción:** Una API RESTful que maneja toda la lógica de negocio, la autenticación de usuarios y la comunicación con la base de datos.
+-   **"Necesito entender la arquitectura técnica (qué tecnología usamos, cómo se conectan las partes)."**
+    -   **Ve a:** La carpeta `system_architecture/`. Encontrarás diagramas, descripciones de los componentes (frontend, backend) y el esquema de la base de datos.
 
-3.  **Base de Datos:**
-    *   **Motor:** PostgreSQL 15
-    *   **Descripción:** Base de datos relacional que persiste todos los datos de la aplicación.
+-   **"Quiero empezar a desarrollar o configurar mi entorno."**
+    -   **Sigue la guía:** El directorio `onboarding/` tiene las instrucciones paso a paso.
 
-## Conceptos Clave de la Aplicación
+-   **"¿Por qué se tomó una decisión de diseño o arquitectura específica?"**
+    -   **Consulta los registros:** La carpeta `adr/` (Architectural Decision Records) documenta las decisiones importantes y su justificación.
 
-### Módulos de Negocio
+-   **"Necesito asumir un rol específico (ej. desarrollador backend)."**
+    -   **Adopta una persona:** La carpeta `personas/` define los perfiles clave del proyecto, sus responsabilidades y las herramientas que utilizan.
 
--   **Autenticación y Roles:** Gestiona el acceso de los usuarios. Ver `ROLES.md` para más detalles.
--   **Asociados (Associates):** Entidades (antes llamadas "Distribuidoras") que originan préstamos.
--   **Clientes (Clients):** Los beneficiarios finales de los préstamos.
--   **Préstamos (Loans):** El núcleo del negocio, gestiona el ciclo de vida de un préstamo.
--   **Pagos (Payments):** Registra los pagos realizados a los préstamos.
+## Protocolo de Actualización
 
-### Sistema de Roles y Permisos (RBAC)
+La documentación es código. Cualquier cambio en la funcionalidad o arquitectura **debe** ir acompañado de una actualización en los documentos relevantes.
 
-La aplicación utiliza un sistema de Control de Acceso Basado en Roles (RBAC) para gestionar los permisos. Cada usuario tiene un rol asignado que define qué acciones puede realizar. Los roles actuales son:
-
--   `desarrollador`
--   `administrador`
--   `auxiliar_administrativo`
--   `asociado`
-
-Para una descripción detallada de los permisos de cada rol, por favor consulta el archivo `docs/ROLES.md`.
+-   **Cambio en la lógica de negocio:** Actualiza `business_logic/` y crea un `adr/` si la decisión es significativa.
+-   **Cambio en el código (API, DB):** Actualiza `system_architecture/`.
+-   **Añadir una nueva dependencia o cambiar el proceso de setup:** Actualiza `onboarding/`.
