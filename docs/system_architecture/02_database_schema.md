@@ -18,13 +18,21 @@ CREATE TYPE user_role AS ENUM ('desarrollador', 'administrador', 'auxiliar_admin
 
 ## Tablas Principales
 
+### `associate_levels` (Nueva Tabla)
+Define los diferentes niveles de asociados y sus límites de crédito.
+- `id`: SERIAL PRIMARY KEY
+- `name`: VARCHAR(50) UNIQUE NOT NULL
+- `max_loan_amount`: NUMERIC(12, 2)
+
 ### `associates`
-Almacena la informaci��n de los asociados que originan préstamos.
+Almacena la información de las entidades de negocio asociadas.
 - `id`: SERIAL PRIMARY KEY
 - `name`: VARCHAR(150) UNIQUE NOT NULL
+- `level_id`: INTEGER NOT NULL REFERENCES `associate_levels(id)`
 - `contact_person`: VARCHAR(150)
 - `contact_email`: VARCHAR(100) UNIQUE
-- `default_commission_rate`: NUMERIC(5, 2) NOT NULL - Tasa de comisión por defecto.
+- `default_commission_rate`: NUMERIC(5, 2) NOT NULL
+- `updated_at`: TIMESTAMPTZ
 
 ### `users` (Tabla Maestra de Personas)
 Almacena la información para cualquier individuo en el sistema (administradores, asociados, clientes). Reemplaza a la antigua tabla `clients`.

@@ -14,6 +14,7 @@ Este tablero utiliza el formato Kanban en Markdown para rastrear el progreso de 
 ### Épica: Modernización de Perfiles de Usuario
 
 -   **[REFACTOR - DB]:** Fusionar la tabla `clients` en `users` y añadir los nuevos campos.
+-   **[FEATURE - DB]:** Crear la tabla `associate_levels` para normalizar los niveles de asociado.
 -   **[FEATURE - DB]:** Crear la nueva tabla `beneficiaries` y su relación con `users`.
 -   **[REFACTOR - BACKEND]:** Adaptar toda la API para usar el nuevo modelo de `users`.
 -   **[FEATURE - BACKEND]:** Crear el CRUD de la API para `/api/users/{id}/beneficiaries`.
