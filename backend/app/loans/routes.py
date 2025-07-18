@@ -6,6 +6,7 @@ from app.auth.jwt import get_current_user, require_roles, require_role
 from app.auth.roles import UserRole
 from app.common.database import get_db
 from app.loans import schemas
+from app.loans.utils import calculate_amortization_schedule
 from app.logic import get_enriched_loan
 from app.auth.schemas import UserInDB
 import asyncpg
@@ -224,6 +225,38 @@ async def get_loan_details(
     response_data['payments'] = [dict(p) for p in payments_records]
     
     return schemas.LoanWithPaymentsResponse.model_validate(response_data)
+
+
+@router.get("/{loan_id}/schedule", response_model=schemas.AmortizationScheduleResponse)
+async def get_loan_amortization_schedule(
+    loan_id: int,
+    conn: asyncpg.Connection = Depends(get_db),
+    current_user: UserInDB = Depends(get_current_user)
+):
+    # Primero, obtener el préstamo para verificar la propiedad
+    loan_record = await conn.fetchrow("SELECT * FROM loans WHERE id = $1", loan_id)
+    if not loan_record:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Préstamo con id {loan_id} no encontrado.")
+
+    # Lógica de permisos
+    if current_user.role == UserRole.CLIENTE:
+        client_record = await conn.fetchrow("SELECT id FROM clients WHERE user_id = $1", current_user.id)
+        if not client_record or client_record['id'] != loan_record['client_id']:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="No tienes permiso para ver este cronograma.")
+    
+    elif current_user.role == UserRole.ASOCIADO:
+        if loan_record['associate_id'] != current_user.associate_id:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="No tienes permiso para ver este cronograma.")
+
+    # Si pasa los permisos, calcular y devolver el cronograma
+    schedule = calculate_amortization_schedule(
+        amount=float(loan_record['amount']),
+        interest_rate=float(loan_record['interest_rate']),
+        term_months=loan_record['term_months'],
+        payment_frequency=loan_record['payment_frequency']
+    )
+    
+    return schemas.AmortizationScheduleResponse(schedule=schedule)
 
 
 @router.put("/{loan_id}/status", response_model=schemas.LoanResponse)
