@@ -14,6 +14,9 @@ class Settings(BaseSettings):
     ALGORITHM: str = os.getenv("ALGORITHM", "HS256")
     ACCESS_TOKEN_EXPIRE_MINUTES: int = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", 30))
 
+    # Database URL for testing
+    TEST_DATABASE_URL: str = "postgresql+asyncpg://credinet_user:credinet_pass@db:5432/credinet_test_db"
+
     class Config:
         case_sensitive = True
 

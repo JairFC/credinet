@@ -1,5 +1,5 @@
 -- Definir un tipo ENUM para los roles de usuario
-CREATE TYPE user_role AS ENUM ('desarrollador', 'administrador', 'auxiliar_administrativo', 'asociado');
+CREATE TYPE user_role AS ENUM ('desarrollador', 'administrador', 'auxiliar_administrativo', 'asociado', 'cliente');
 
 -- Crear la tabla de asociados (antes distribuidoras)
 CREATE TABLE IF NOT EXISTS associates (
@@ -142,3 +142,24 @@ INSERT INTO payments (loan_id, amount_paid, payment_date) VALUES
 -- Pagos para el préstamo 9 (en mora)
 (9, 442.89, CURRENT_DATE - INTERVAL '6 months'),
 (9, 442.89, CURRENT_DATE - INTERVAL '5 months');
+
+-- =============================================================================
+-- DATOS PARA EL PORTAL DE CLIENTE
+-- =============================================================================
+
+-- 1. Crear un nuevo cliente
+INSERT INTO clients (user_id, first_name, last_name, email) VALUES
+(NULL, 'Sofía', 'Vargas', 'sofia.vargas@email.com')
+ON CONFLICT (email) DO NOTHING;
+
+-- 2. Crear un usuario para ese cliente
+-- La contraseña es 'Sparrow20'
+INSERT INTO users (username, password_hash, role, associate_id) VALUES
+('sofia.vargas', '$2b$12$nQ5r/gNN1inmSLCYEvUtCOfo4G27JbRwSDAe7/IX40tVtAdRc78q.', 'cliente', NULL)
+ON CONFLICT (username) DO NOTHING;
+
+-- 3. Vincular el usuario al cliente
+UPDATE clients SET user_id = (SELECT id FROM users WHERE username = 'sofia.vargas') WHERE email = 'sofia.vargas@email.com';
+
+-- 4. Asignarle un préstamo existente a Sofía para que tenga datos que ver
+UPDATE loans SET client_id = (SELECT id FROM clients WHERE email = 'sofia.vargas@email.com') WHERE id = 9;

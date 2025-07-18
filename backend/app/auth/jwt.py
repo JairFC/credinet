@@ -7,6 +7,7 @@ from passlib.context import CryptContext
 import asyncpg
 
 from app.auth.schemas import TokenData, UserResponse, UserInDB
+from app.auth.roles import UserRole
 from app.core.config import settings
 from app.common import database
 
@@ -63,34 +64,36 @@ async def get_current_user(token: str = Depends(oauth2_scheme)) -> UserInDB:
 
 async def get_current_user_response(user: UserInDB = Depends(get_current_user)) -> UserResponse:
     """Devuelve un modelo UserResponse a partir del usuario actual."""
-    return UserResponse(id=user.id, username=user.username, role=user.role)
+    return UserResponse(id=user.id, username=user.username, role=user.role, associate_id=user.associate_id)
 
 
-def require_role(required_role: str):
+def require_role(required_role: UserRole):
     """
     Factoría de dependencias para requerir un rol específico.
     """
     async def role_checker(current_user: UserInDB = Depends(get_current_user)) -> UserInDB:
-        if current_user.role != required_role and current_user.role != 'desarrollador':
+        if current_user.role == UserRole.DESARROLLADOR:
+            return current_user
+        if current_user.role != required_role:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail=f"Acceso denegado. Se requiere el rol '{required_role}'.",
+                detail=f"Acceso denegado. Se requiere el rol '{required_role.value}'.",
             )
         return current_user
     return role_checker
 
-def require_roles(required_roles: list[str]):
+def require_roles(required_roles: list[UserRole]):
     """
     Factoría de dependencias para requerir uno de varios roles.
     """
     async def role_checker(current_user: UserInDB = Depends(get_current_user)) -> UserInDB:
         # El desarrollador siempre tiene acceso
-        if 'desarrollador' in current_user.role:
+        if current_user.role == UserRole.DESARROLLADOR:
             return current_user
         if current_user.role not in required_roles:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail=f"Acceso denegado. Se requiere uno de los siguientes roles: {', '.join(required_roles)}.",
+                detail=f"Acceso denegado. Se requiere uno de los siguientes roles: {', '.join(role.value for role in required_roles)}.",
             )
         return current_user
     return role_checker
