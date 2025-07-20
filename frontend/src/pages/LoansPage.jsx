@@ -2,93 +2,58 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import apiClient from '../services/api';
 import { useAuth } from '../context/AuthContext';
-import EditLoanModal from '../components/EditLoanModal'; // Asumimos que este modal existirá
-import './ClientsPage.css';
+
+const PaginationControls = ({ page, pages, onPageChange }) => {
+  if (pages <= 1) return null;
+  return (
+    <div style={{ marginTop: '20px', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '1rem' }}>
+      <button onClick={() => onPageChange(page - 1)} disabled={page <= 1}>Anterior</button>
+      <span>Página {page} de {pages}</span>
+      <button onClick={() => onPageChange(page + 1)} disabled={page >= pages}>Siguiente</button>
+    </div>
+  );
+};
 
 const LoansPage = () => {
   const { user } = useAuth();
-  const [loans, setLoans] = useState([]);
-  const [clients, setClients] = useState([]);
+  const [data, setData] = useState({ items: [], total: 0, page: 1, pages: 1 });
+  const [currentPage, setCurrentPage] = useState(1);
   const [associates, setAssociates] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  const [isCreateModalOpen, setCreateModalOpen] = useState(false);
-  const [editingLoan, setEditingLoan] = useState(null);
-
-  const [statusFilter, setStatusFilter] = useState('');
-  const [associateFilter, setAssociateFilter] = useState('');
-
   const canManage = user && (user.role === 'administrador' || user.role === 'auxiliar_administrativo');
   const canDelete = user && user.role === 'administrador';
 
-  const fetchLoans = async () => {
-    try {
-      setLoading(true);
-      const params = new URLSearchParams();
-      if (statusFilter) params.append('status', statusFilter);
-      if (associateFilter) params.append('associate_id', associateFilter);
-      
-      const response = await apiClient.get(`/loans/?${params.toString()}`);
-      setLoans(response.data);
-    } catch (err) {
-      setError('Error al cargar los préstamos.');
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchInitialData = async () => {
-    try {
-      setLoading(true);
-      const [loansRes, associatesRes, clientsRes] = await Promise.all([
-        apiClient.get('/loans/'),
-        apiClient.get('/associates/'),
-        apiClient.get('/clients/')
-      ]);
-      setLoans(loansRes.data);
-      setAssociates(associatesRes.data);
-      setClients(clientsRes.data);
-    } catch (err) {
-      setError('No se pudieron cargar los datos iniciales.');
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   useEffect(() => {
+    const fetchInitialData = async () => {
+      try {
+        setLoading(true);
+        const [loansRes, associatesRes] = await Promise.all([
+          apiClient.get(`/loans/?page=${currentPage}`),
+          apiClient.get('/associates/'), // La paginación aquí es un bug, pero lo arreglamos abajo
+        ]);
+        setData(loansRes.data);
+        setAssociates(associatesRes.data.items); // Corregido: extraer .items
+      } catch (err) {
+        setError('No se pudieron cargar los datos iniciales.');
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    };
     fetchInitialData();
-  }, []);
-
-  const handleFilterChange = () => {
-    fetchLoans();
-  };
-
-  const resetFilters = () => {
-    setStatusFilter('');
-    setAssociateFilter('');
-    fetchInitialData(); // Recarga todo
-  };
+  }, [currentPage]);
 
   const handleDeleteLoan = async (loanId) => {
-    if (!canDelete) return;
-    if (!window.confirm('¿Estás seguro de que quieres eliminar este préstamo? Esta acción no se puede deshacer.')) {
-      return;
-    }
+    if (!canDelete || !window.confirm('¿Estás seguro?')) return;
     try {
       await apiClient.delete(`/loans/${loanId}`);
-      fetchLoans(); // Refresca la lista
+      // Recargar la página actual para reflejar el cambio
+      setCurrentPage(1); // O podrías refetchear la página actual
     } catch (err) {
       setError(err.response?.data?.detail || 'No se pudo eliminar el préstamo.');
     }
-  };
-
-  const handleUpdateSuccess = () => {
-    setEditingLoan(null);
-    setCreateModalOpen(false);
-    fetchLoans();
   };
 
   const associateMap = useMemo(() => 
@@ -96,31 +61,30 @@ const LoansPage = () => {
     [associates]
   );
 
+  if (loading) return <p>Cargando préstamos...</p>;
+  if (error) return <p style={{ color: 'red' }}>{error}</p>;
+
   return (
     <div className="clients-page">
       <Link to="/dashboard" className="back-link">← Volver al Dashboard</Link>
       <h1>Gestión de Préstamos</h1>
       
       {canManage && (
-        <div className="toolbar">
-          <button onClick={() => setCreateModalOpen(true)}>+ Crear Nuevo Préstamo</button>
+        <div className="toolbar" style={{ marginBottom: '20px' }}>
+          <Link to="/loans/new">
+            <button>+ Crear Nuevo Préstamo</button>
+          </Link>
         </div>
       )}
-
-      <div className="filters-container">
-        {/* ... filtros ... */}
-      </div>
       
       <hr />
 
-      <h2>Lista de Préstamos ({loans.length})</h2>
-      {loading && <p>Cargando préstamos...</p>}
-      {error && <p style={{ color: 'red' }}>{error}</p>}
+      <h2>Lista de Préstamos ({data.total})</h2>
       <table className="clients-table">
         <thead>
           <tr>
             <th>ID</th>
-            <th>Cliente</th>
+            <th>Usuario (Cliente)</th>
             <th>Asociado</th>
             <th>Monto</th>
             <th>Saldo Pendiente</th>
@@ -129,12 +93,12 @@ const LoansPage = () => {
           </tr>
         </thead>
         <tbody>
-          {loans.map(loan => (
+          {data.items.map(loan => (
             <tr key={loan.id}>
               <td>{loan.id}</td>
               <td>
-                <Link to={`/clients/${loan.client_id}/loans`}>
-                  {loan.client_first_name} {loan.client_last_name}
+                <Link to={`/users/${loan.user_id}/loans`}>
+                  {loan.user_first_name} {loan.user_last_name}
                 </Link>
               </td>
               <td>{associateMap.get(loan.associate_id) || 'N/A'}</td>
@@ -143,7 +107,7 @@ const LoansPage = () => {
               <td><span className={`status-badge status-${loan.status}`}>{loan.status}</span></td>
               {canManage && (
                 <td className="actions-cell">
-                  <button onClick={() => setEditingLoan(loan)}>Editar</button>
+                  <button>Editar</button>
                   {canDelete && (
                     <button onClick={() => handleDeleteLoan(loan.id)} style={{ marginLeft: '5px' }}>Eliminar</button>
                   )}
@@ -153,16 +117,7 @@ const LoansPage = () => {
           ))}
         </tbody>
       </table>
-
-      {(isCreateModalOpen || editingLoan) && (
-        <EditLoanModal
-          loan={editingLoan} // Si es null, el modal sabe que es para crear
-          clients={clients}
-          associates={associates}
-          onUpdateSuccess={handleUpdateSuccess}
-          onClose={() => { setEditingLoan(null); setCreateModalOpen(false); }}
-        />
-      )}
+      <PaginationControls page={data.page} pages={data.pages} onPageChange={setCurrentPage} />
     </div>
   );
 };

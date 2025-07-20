@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import apiClient from '../services/api';
 import { useAuth } from '../context/AuthContext';
-import './ClientsPage.css'; // Reutilizamos estilos
 
 const ClientDashboardPage = () => {
   const { user } = useAuth();
