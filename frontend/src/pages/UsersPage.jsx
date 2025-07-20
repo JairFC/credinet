@@ -23,7 +23,7 @@ const UsersPage = ({ roleFilter = null, pageTitle = "Gestión de Usuarios" }) =>
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  const canManage = user && (user.role === 'administrador' || user.role === 'desarrollador');
+  const canManage = user && (user.roles.includes('administrador') || user.roles.includes('desarrollador'));
 
   useEffect(() => {
     const fetchUsers = async () => {

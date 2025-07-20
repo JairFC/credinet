@@ -1,6 +1,5 @@
 from pydantic import BaseModel, ConfigDict, EmailStr
 from typing import Optional, List
-from .roles import UserRole
 from datetime import datetime, date
 
 class UserBase(BaseModel):
@@ -21,7 +20,7 @@ class UserBase(BaseModel):
 
 class UserCreate(UserBase):
     password: str
-    role: UserRole
+    roles: List[str]
     associate_id: Optional[int] = None
 
 class UserUpdate(BaseModel):
@@ -40,12 +39,12 @@ class UserUpdate(BaseModel):
     address_zip_code: Optional[str] = None
     address_state: Optional[str] = None
     password: Optional[str] = None
-    role: Optional[UserRole] = None
+    roles: Optional[List[str]] = None
     associate_id: Optional[int] = None
 
 class UserInDB(UserBase):
     id: int
-    role: UserRole
+    roles: List[str]
     password_hash: str
     associate_id: Optional[int] = None
     updated_at: datetime
@@ -53,7 +52,7 @@ class UserInDB(UserBase):
 
 class UserResponse(UserBase):
     id: int
-    role: UserRole
+    roles: List[str]
     associate_id: Optional[int] = None
     updated_at: datetime
     model_config = ConfigDict(from_attributes=True)
@@ -71,5 +70,5 @@ class Token(BaseModel):
 
 class TokenData(BaseModel):
     username: Optional[str] = None
-    role: Optional[UserRole] = None
+    roles: Optional[List[str]] = None
     associate_id: Optional[int] = None

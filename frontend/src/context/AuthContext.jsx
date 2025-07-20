@@ -10,12 +10,12 @@ export const AuthProvider = ({ children }) => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Si hay un token en localStorage al cargar la app, decodifícalo.
     if (token) {
       try {
-        setUser(jwtDecode(token));
+        const decoded = jwtDecode(token);
+        // El payload ahora tiene un campo "roles" que es una lista
+        setUser({ ...decoded, roles: decoded.roles || [] });
       } catch (error) {
-        // Si el token es inválido, lo limpiamos
         logoutAction();
       }
     }
@@ -25,15 +25,16 @@ export const AuthProvider = ({ children }) => {
     const newToken = data.access_token;
     setToken(newToken);
     localStorage.setItem('authToken', newToken);
-    setUser(jwtDecode(newToken)); // Decodificamos y guardamos el usuario
-    navigate('/dashboard'); // Redirige al dashboard después del login
+    const decoded = jwtDecode(newToken);
+    setUser({ ...decoded, roles: decoded.roles || [] });
+    navigate('/dashboard');
   };
 
   const logoutAction = () => {
     setToken(null);
     setUser(null);
     localStorage.removeItem('authToken');
-    navigate('/login'); // Redirige al login después de cerrar sesión
+    navigate('/login');
   };
 
   const value = {
