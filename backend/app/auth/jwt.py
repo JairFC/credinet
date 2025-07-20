@@ -19,18 +19,33 @@ ACCESS_TOKEN_EXPIRE_MINUTES = settings.ACCESS_TOKEN_EXPIRE_MINUTES
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login")
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 async def authenticate_user(conn: asyncpg.Connection, username: str, password: str) -> UserInDB | None:
     """
     Busca un usuario, verifica su contraseña y devuelve sus datos, incluido el rol.
     """
+    logger.info(f"Attempting to authenticate user: {username}")
     user_record = await conn.fetchrow("SELECT * FROM users WHERE username = $1", username)
     if not user_record:
+        logger.warning(f"Authentication failed: User '{username}' not found.")
+        return None
+    
+    logger.info(f"User '{username}' found. Verifying password.")
+    password_hash_from_db = user_record['password_hash']
+    
+    try:
+        is_password_correct = await asyncio.to_thread(pwd_context.verify, password, password_hash_from_db)
+        if not is_password_correct:
+            logger.warning(f"Authentication failed: Incorrect password for user '{username}'.")
+            return None
+    except Exception as e:
+        logger.error(f"Error during password verification for user '{username}': {e}", exc_info=True)
         return None
 
-    is_password_correct = await asyncio.to_thread(pwd_context.verify, password, user_record['password_hash'])
-    if not is_password_correct:
-        return None
-
+    logger.info(f"Authentication successful for user: {username}")
     return UserInDB(**dict(user_record))
 
 def create_access_token(data: dict):
@@ -64,7 +79,7 @@ async def get_current_user(token: str = Depends(oauth2_scheme)) -> UserInDB:
 
 async def get_current_user_response(user: UserInDB = Depends(get_current_user)) -> UserResponse:
     """Devuelve un modelo UserResponse a partir del usuario actual."""
-    return UserResponse(id=user.id, username=user.username, role=user.role, associate_id=user.associate_id)
+    return UserResponse.model_validate(user)
 
 
 def require_role(required_role: UserRole):

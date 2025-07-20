@@ -44,11 +44,11 @@ function LoginPage() {
   }
 
   return (
-    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
-      <div style={{ width: '300px', textAlign: 'center' }}>
+    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', flexGrow: 1 }}>
+      <div style={{ width: '320px', textAlign: 'center', padding: '2rem', background: 'var(--color-surface)', borderRadius: '8px' }}>
         <h1>Iniciar Sesión en Credinet</h1>
         <form onSubmit={handleSubmit}>
-          <div>
+          <div style={{ marginBottom: '1rem', textAlign: 'left' }}>
             <label htmlFor="username">Usuario:</label>
             <input
               type="text"
@@ -56,10 +56,10 @@ function LoginPage() {
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               required
-              style={{ width: '100%', padding: '8px', margin: '8px 0' }}
+              style={{ width: '100%', padding: '8px', marginTop: '4px', background: 'var(--color-background)', border: '1px solid var(--color-border)', borderRadius: '4px', color: 'var(--color-text-primary)' }}
             />
           </div>
-          <div>
+          <div style={{ marginBottom: '1rem', textAlign: 'left' }}>
             <label htmlFor="password">Contraseña:</label>
             <input
               type="password"
@@ -67,15 +67,12 @@ function LoginPage() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
-              style={{ width: '100%', padding: '8px', margin: '8px 0' }}
+              style={{ width: '100%', padding: '8px', marginTop: '4px', background: 'var(--color-background)', border: '1px solid var(--color-border)', borderRadius: '4px', color: 'var(--color-text-primary)' }}
             />
           </div>
           {error && <p style={{ color: 'red' }}>{error}</p>}
-          <button type="submit" style={{ width: '100%', padding: '10px', background: '#333', color: 'white', border: 'none', cursor: 'pointer' }}>Ingresar</button>
+          <button type="submit" style={{ width: '100%', padding: '10px', background: 'var(--color-primary)', color: 'white', border: 'none', cursor: 'pointer', borderRadius: '4px' }}>Ingresar</button>
         </form>
-        <p>
-          ¿No tienes una cuenta? <Link to="/register">Regístrate aquí</Link>
-        </p>
       </div>
     </div>
   );

@@ -1,16 +1,16 @@
 from pydantic import BaseModel, Field
 from typing import Literal, Optional, List
-from datetime import date
+from datetime import date, datetime
 
 class LoanBase(BaseModel):
     amount: float = Field(..., gt=0)
     interest_rate: float = Field(..., ge=0)
     commission_rate: float = Field(0.0, ge=0)
-    term_months: int = Field(..., gt=0)
+    term_months: float = Field(..., gt=0) # Cambiado a float
     payment_frequency: Literal['quincenal', 'mensual'] = 'quincenal'
 
 class LoanCreate(LoanBase):
-    client_id: int
+    user_id: int
     associate_id: Optional[int] = None
 
 class LoanUpdate(LoanBase):
@@ -18,15 +18,16 @@ class LoanUpdate(LoanBase):
 
 class LoanResponse(LoanBase):
     id: int
-    client_id: int
+    user_id: int
     associate_id: Optional[int] = None
     commission_rate: float
-    client_first_name: str
-    client_last_name: str
+    user_first_name: str
+    user_last_name: str
     status: Literal['pending', 'active', 'paid', 'defaulted']
     payments_made: int
     total_paid: float
     outstanding_balance: float
+    updated_at: datetime
 
     class Config:
         from_attributes = True
@@ -40,12 +41,14 @@ class PaymentResponse(BaseModel):
     loan_id: int
     amount_paid: float
     payment_date: date
+    updated_at: datetime
 
 class LoanStatusUpdate(BaseModel):
     status: Literal['pending', 'active', 'paid', 'defaulted']
 
 class AmortizationPayment(BaseModel):
     payment_number: int
+    payment_date: date # Nuevo
     payment_amount: float
     principal: float
     interest: float
@@ -54,28 +57,12 @@ class AmortizationPayment(BaseModel):
 class AmortizationScheduleResponse(BaseModel):
     schedule: List[AmortizationPayment]
 
-class UserLoanSummaryResponse(BaseModel):
-    total_loans: int
-    active_loans: int
-    total_loaned_amount: float
-    total_outstanding_balance: float
-
-class ClientLoanSummaryResponse(BaseModel):
-    total_loans: int
-    active_loans: int
-    total_loaned_amount: float
-    total_outstanding_balance: float
-
 class GlobalLoanSummaryResponse(BaseModel):
     total_loans: int
     active_loans: int
     total_loaned_amount: float
     total_outstanding_balance: float
     total_commission: float
-
-class PaymentUpdate(BaseModel):
-    amount_paid: float = Field(..., gt=0)
-    payment_date: date
 
 class LoanWithPaymentsResponse(LoanResponse):
     payments: List[PaymentResponse]

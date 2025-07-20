@@ -11,7 +11,7 @@ Este directorio es el "cerebro" del proyecto Credinet. Contiene toda la informac
     -   **Ve a:** La carpeta `system_architecture/`. Encontrarás diagramas, descripciones de los componentes (frontend, backend) y el esquema de la base de datos.
 
 -   **"Quiero empezar a desarrollar o configurar mi entorno."**
-    -   **Sigue la guía:** El directorio `onboarding/` tiene las instrucciones paso a paso.
+    -   **Sigue la guía:** El directorio `onboarding/` tiene las instrucciones paso a paso. Lee primero `01_developer_setup.md` y luego `02_system_health_check.md` para entender nuestras herramientas de calidad.
 
 -   **"¿Por qué se tomó una decisión de diseño o arquitectura específica?"**
     -   **Consulta los registros:** La carpeta `adr/` (Architectural Decision Records) documenta las decisiones importantes y su justificación.

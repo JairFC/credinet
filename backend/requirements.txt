@@ -1,15 +1,14 @@
 fastapi
 uvicorn
 psycopg2-binary
-passlib[bcrypt]==1.7.4
+passlib[bcrypt]
 python-jose[cryptography]
 python-dotenv
 asyncpg
-bcrypt==3.2.0
+bcrypt
 pydantic[email]
 pydantic-settings
 python-multipart
-# Testing
-pytest
-httpx
-pytest-asyncio
+Faker
+requests
+python-dateutil

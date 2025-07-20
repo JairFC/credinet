@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import apiClient from '../services/api';
-import './ClientsPage.css'; // Reutilizamos estilos
 
 const LoanDetailsPage = () => {
   const { loanId } = useParams();
@@ -49,6 +48,7 @@ const LoanDetailsPage = () => {
         <thead>
           <tr>
             <th>Cuota N°</th>
+            <th>Fecha de Pago</th>
             <th>Monto a Pagar</th>
             <th>Capital</th>
             <th>Interés</th>
@@ -59,6 +59,7 @@ const LoanDetailsPage = () => {
           {schedule.map(payment => (
             <tr key={payment.payment_number}>
               <td>{payment.payment_number}</td>
+              <td>{new Date(payment.payment_date).toLocaleDateString()}</td>
               <td>${payment.payment_amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}</td>
               <td>${payment.principal.toLocaleString('en-US', { minimumFractionDigits: 2 })}</td>
               <td>${payment.interest.toLocaleString('en-US', { minimumFractionDigits: 2 })}</td>

@@ -4,7 +4,6 @@ import { Link } from 'react-router-dom';
 import apiClient from '../services/api';
 import AssociateDashboardPage from './AssociateDashboardPage';
 import ClientDashboardPage from './ClientDashboardPage'; // Importar el nuevo dashboard
-import './ClientsPage.css';
 
 const AdminDashboard = () => {
   const { user } = useAuth();
@@ -68,7 +67,7 @@ const AdminDashboard = () => {
       
       <div style={{ margin: '20px 0' }}>
         <Link to="/loans" className="button-link">Ver Todos los Préstamos</Link>
-        <Link to="/clients" className="button-link" style={{ marginLeft: '15px' }}>Gestionar Clientes</Link>
+        <Link to="/users" className="button-link" style={{ marginLeft: '15px' }}>Gestionar Usuarios</Link>
         <Link to="/associates" className="button-link" style={{ marginLeft: '15px' }}>Gestionar Asociados</Link>
       </div>
     </div>

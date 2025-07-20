@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import apiClient from '../services/api';
 import { Link } from 'react-router-dom';
-import './ClientsPage.css';
 
 const AssociateDashboardPage = () => {
   const { user } = useAuth();
@@ -19,8 +18,10 @@ const AssociateDashboardPage = () => {
       }
 
       try {
-        const response = await apiClient.get(`/associates/${user.associate_id}/summary`);
-        setSummary(response.data);
+        // El nuevo endpoint no requiere ID, ya que se basa en el token
+        const response = await apiClient.get(`/associates/dashboard`);
+        // La respuesta ahora contiene summary, loans y users
+        setSummary(response.data.summary);
       } catch (err) {
         setError('No se pudieron cargar los datos del dashboard.');
         console.error(err);

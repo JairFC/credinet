@@ -1,0 +1,30 @@
+from fastapi import APIRouter, Depends, HTTPException, status
+from typing import List
+import asyncpg
+
+from app.common import database
+from app.auth.jwt import require_roles
+from app.auth.roles import UserRole
+from app.auth.schemas import UserInDB
+from . import schemas # Suponiendo que crearemos schemas para beneficiarios
+
+router = APIRouter()
+
+@router.post("/users/{user_id}/beneficiaries", response_model=schemas.BeneficiaryResponse, status_code=status.HTTP_201_CREATED)
+async def create_beneficiary(
+    user_id: int,
+    beneficiary: schemas.BeneficiaryCreate,
+    current_user: UserInDB = Depends(require_roles([UserRole.ADMINISTRADOR, UserRole.AUXILIAR_ADMINISTRATIVO]))
+):
+    # Lógica para crear un beneficiario
+    pass
+
+@router.get("/users/{user_id}/beneficiaries", response_model=List[schemas.BeneficiaryResponse])
+async def get_beneficiaries(
+    user_id: int,
+    current_user: UserInDB = Depends(require_roles([UserRole.ADMINISTRADOR, UserRole.AUXILIAR_ADMINISTRATIVO, UserRole.CLIENTE]))
+):
+    # Lógica para obtener beneficiarios
+    pass
+
+# ... (PUT y DELETE)
