@@ -3,6 +3,7 @@ import asyncpg
 import os
 from contextlib import asynccontextmanager
 from app.core.config import settings
+from typing import List
 
 # Esta configuración se usará por defecto
 DATABASE_URL = f"postgresql://{os.getenv('POSTGRES_USER')}:{os.getenv('POSTGRES_PASSWORD')}@{os.getenv('POSTGRES_HOST')}/{os.getenv('POSTGRES_DB')}"
@@ -39,3 +40,12 @@ async def get_db_context():
 async def get_db():
     async with get_db_context() as conn:
         yield conn
+
+async def get_user_roles(conn: asyncpg.Connection, user_id: int) -> List[str]:
+    query = """
+        SELECT r.name FROM roles r
+        JOIN user_roles ur ON r.id = ur.role_id
+        WHERE ur.user_id = $1
+    """
+    records = await conn.fetch(query, user_id)
+    return [record['name'] for record in records]

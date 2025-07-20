@@ -20,10 +20,12 @@ const linkStyle = {
 
 const Navbar = () => {
   const { user, logoutAction } = useAuth();
-  const userRole = user?.role;
 
-  const managementRoles = ['desarrollador', 'administrador', 'auxiliar_administrativo'];
-  const adminRoles = ['desarrollador', 'administrador'];
+  // Funciones de ayuda para verificar roles
+  const hasRole = (roles) => user && user.roles && roles.some(role => user.roles.includes(role));
+
+  const canSeeManagement = hasRole(['desarrollador', 'administrador', 'auxiliar_administrativo']);
+  const canSeeAdmin = hasRole(['desarrollador', 'administrador']);
 
   return (
     <nav style={navStyle}>
@@ -37,7 +39,7 @@ const Navbar = () => {
           <>
             <Link to="/dashboard" style={linkStyle}>Dashboard</Link>
 
-            {managementRoles.includes(userRole) && (
+            {canSeeManagement && (
               <>
                 <Link to="/clients" style={linkStyle}>Clientes</Link>
                 <Link to="/associates" style={linkStyle}>Asociados</Link>
@@ -45,12 +47,12 @@ const Navbar = () => {
               </>
             )}
 
-            {adminRoles.includes(userRole) && (
+            {canSeeAdmin && (
               <Link to="/users" style={linkStyle}>Usuarios</Link>
             )}
             
             <button onClick={logoutAction} style={{ ...linkStyle, background: 'none', border: 'none', cursor: 'pointer', marginLeft: '20px' }}>
-              Cerrar Sesión ({user.username})
+              Cerrar Sesión ({user.sub})
             </button>
           </>
         )}

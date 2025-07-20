@@ -5,7 +5,6 @@ from fastapi import APIRouter, Depends, HTTPException, status
 
 from app.auth.jwt import require_roles, get_current_user
 from app.auth.schemas import UserInDB, UserResponse
-from app.auth.roles import UserRole
 from app.common import database
 from . import schemas
 from app.loans.schemas import LoanResponse
@@ -47,7 +46,7 @@ class AssociateDashboardData(BaseModel):
 async def get_associate_dashboard_data(
     current_user: UserInDB = Depends(get_current_user)
 ):
-    if current_user.role != UserRole.ASOCIADO:
+    if "asociado" not in current_user.roles:
         raise HTTPException(status_code=403, detail="Acceso denegado.")
     
     associate_id = current_user.associate_id
@@ -73,12 +72,17 @@ async def get_associate_dashboard_data(
         user_ids = {loan['user_id'] for loan in enriched_loans_dicts}
         users_records = []
         if user_ids:
-            users_query = "SELECT id, username, role, first_name, last_name, email, phone_number, associate_id, updated_at FROM users WHERE id = ANY($1::int[])"
+            users_query = "SELECT * FROM users WHERE id = ANY($1::int[])"
             users_records = await conn.fetch(users_query, list(user_ids))
 
-    final_summary = schemas.AssociateSummaryResponse.model_validate(summary_data)
-    final_loans = [LoanResponse.model_validate(loan) for loan in enriched_loans_dicts]
-    final_users = [UserResponse.model_validate(dict(user)) for user in users_records] # Convertir a dict
+        final_summary = schemas.AssociateSummaryResponse.model_validate(summary_data)
+        final_loans = [LoanResponse.model_validate(loan) for loan in enriched_loans_dicts]
+        
+        final_users = []
+        for user_record in users_records:
+            user_dict = dict(user_record)
+            user_dict['roles'] = await database.get_user_roles(conn, user_dict['id'])
+            final_users.append(UserResponse.model_validate(user_dict))
 
     return AssociateDashboardData(
         summary=final_summary,

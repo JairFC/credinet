@@ -21,8 +21,8 @@ const AssociatesPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  const canManage = user && (user.role === 'administrador' || user.role === 'auxiliar_administrativo');
-  const canDelete = user && user.role === 'administrador';
+  const canManage = user && (user.roles.includes('administrador') || user.roles.includes('auxiliar_administrativo'));
+  const canDelete = user && user.roles.includes('administrador');
 
   useEffect(() => {
     const fetchAssociates = async () => {

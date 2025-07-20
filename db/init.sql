@@ -12,7 +12,11 @@ $$ language 'plpgsql';
 -- =============================================================================
 -- DEFINICIÓN DE TABLAS
 -- =============================================================================
-CREATE TYPE user_role AS ENUM ('desarrollador', 'administrador', 'auxiliar_administrativo', 'asociado', 'cliente');
+
+CREATE TABLE IF NOT EXISTS roles (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(50) UNIQUE NOT NULL
+);
 
 CREATE TABLE IF NOT EXISTS associate_levels (
     id SERIAL PRIMARY KEY,
@@ -36,7 +40,6 @@ CREATE TABLE IF NOT EXISTS users (
     id SERIAL PRIMARY KEY,
     username VARCHAR(50) UNIQUE NOT NULL,
     password_hash VARCHAR(255) NOT NULL,
-    role user_role NOT NULL,
     first_name VARCHAR(100) NOT NULL,
     last_name VARCHAR(100) NOT NULL,
     email VARCHAR(100) UNIQUE NOT NULL,
@@ -52,8 +55,13 @@ CREATE TABLE IF NOT EXISTS users (
     address_state VARCHAR(50),
     associate_id INTEGER REFERENCES associates(id) ON DELETE SET NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT fk_associate_if_role_is_associate CHECK (role <> 'asociado' OR associate_id IS NOT NULL)
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS user_roles (
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    role_id INTEGER NOT NULL REFERENCES roles(id) ON DELETE RESTRICT,
+    PRIMARY KEY (user_id, role_id)
 );
 
 CREATE TABLE IF NOT EXISTS beneficiaries (
