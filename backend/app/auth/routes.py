@@ -1,133 +1,119 @@
 from fastapi import APIRouter, HTTPException, Depends, status
 from fastapi.security import OAuth2PasswordRequestForm
-from datetime import timedelta
 import asyncpg
-import bcrypt
 from typing import List
 
-from .schemas import UserCreate, UserResponse, Token, UserUpdate
-from .jwt import create_access_token, authenticate_user, get_current_user, require_role
-from .roles import UserRole
-from app.core.config import settings
-from app.common import database
+from app.auth.schemas import UserCreate, UserResponse, Token, UserUpdate, PaginatedUserResponse, UserInDB
+from app.auth.jwt import create_access_token, authenticate_user, get_current_user, require_roles, pwd_context
+from app.common.database import get_db, get_user_roles
 from app.loans.schemas import ClientDashboardResponse, ClientDashboardSummary, ClientDashboardLoan, ClientDashboardPayment
 from app.logic import get_enriched_loan
 
 router = APIRouter()
 
-@router.post("/register", response_model=UserResponse)
+@router.post("/users", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
 async def register_user(
-    user_data: UserCreate
+    user_data: UserCreate,
+    current_user: UserInDB = Depends(require_roles(["administrador", "desarrollador"])),
+    conn: asyncpg.Connection = Depends(get_db)
 ):
-    """
-    Registra un nuevo usuario directamente en la base de datos.
-    """
-    hashed_password = bcrypt.hashpw(user_data.password.encode('utf-8'), bcrypt.gensalt())
+    hashed_password = pwd_context.hash(user_data.password)
     
-    async with database.db_pool.acquire() as conn:
+    async with conn.transaction():
         try:
-            # Convertir el rol a string para la BD
-            role_value = user_data.role.value if isinstance(user_data.role, UserRole) else user_data.role
-            
             new_user_record = await conn.fetchrow(
                 """
-                INSERT INTO users (username, password_hash, role, associate_id) VALUES ($1, $2, $3, $4)
-                RETURNING id, username, role, associate_id
+                INSERT INTO users (username, password_hash, first_name, last_name, email, phone_number, associate_id, birth_date, curp)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+                RETURNING id, username, first_name, last_name, email, phone_number, associate_id, updated_at, birth_date, curp, profile_picture_url, address_street, address_ext_num, address_int_num, address_colonia, address_zip_code, address_state
                 """,
-                user_data.username,
-                hashed_password.decode('utf-8'),
-                role_value,
-                user_data.associate_id
+                user_data.username, hashed_password,
+                user_data.first_name, user_data.last_name, user_data.email, user_data.phone_number,
+                user_data.associate_id, user_data.birth_date, user_data.curp
             )
-            return dict(new_user_record)
+
+            role_ids_records = await conn.fetch("SELECT id FROM roles WHERE name = ANY($1::text[])", user_data.roles)
+            if len(role_ids_records) != len(user_data.roles):
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Uno o más roles no son válidos.")
+
+            role_ids = [record['id'] for record in role_ids_records]
+            for role_id in role_ids:
+                await conn.execute("INSERT INTO user_roles (user_id, role_id) VALUES ($1, $2)", new_user_record['id'], role_id)
+
         except asyncpg.exceptions.UniqueViolationError:
-            raise HTTPException(
-                status_code=status.HTTP_409_CONFLICT,
-                detail=f"El nombre de usuario '{user_data.username}' ya existe."
-            )
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="El nombre de usuario o email ya existe.")
+
+    user_dict = dict(new_user_record)
+    user_dict['roles'] = user_data.roles
+    return UserResponse.model_validate(user_dict)
+
 
 @router.post("/login", response_model=Token)
 async def login_for_access_token(
-    form_data: OAuth2PasswordRequestForm = Depends()
+    form_data: OAuth2PasswordRequestForm = Depends(),
+    conn: asyncpg.Connection = Depends(get_db)
 ):
-    async with database.db_pool.acquire() as conn:
-        user = await authenticate_user(conn, form_data.username, form_data.password)
-        if not user:
-            raise HTTPException(
-                status_code=401,
-                detail="Nombre de usuario o contraseña incorrectos",
-                headers={"WWW-Authenticate": "Bearer"},
-            )
+    user = await authenticate_user(conn, form_data.username, form_data.password)
+    if not user:
+        raise HTTPException(status_code=401, detail="Nombre de usuario o contraseña incorrectos", headers={"WWW-Authenticate": "Bearer"})
     
-    token_data = {"sub": user.username, "role": user.role.value}
-    
-    if user.role == UserRole.ASOCIADO and user.associate_id:
+    token_data = {"sub": user.username, "roles": user.roles}
+    if "asociado" in user.roles and user.associate_id:
         token_data["associate_id"] = user.associate_id
         
     access_token = create_access_token(data=token_data)
-    
     return {"access_token": access_token, "token_type": "bearer"}
 
 @router.get("/me", response_model=UserResponse)
-async def read_users_me(current_user: UserResponse = Depends(get_current_user)):
-    return current_user
+async def read_users_me(current_user: UserInDB = Depends(get_current_user)):
+    user_dict = current_user.model_dump()
+    return UserResponse.model_validate(user_dict)
 
 @router.get("/me/dashboard", response_model=ClientDashboardResponse)
 async def get_client_dashboard(
-    current_user: UserResponse = Depends(require_role(UserRole.CLIENTE)),
-    conn: asyncpg.Connection = Depends(database.get_db)
+    current_user: UserInDB = Depends(require_roles(["cliente"])),
+    conn: asyncpg.Connection = Depends(get_db)
 ):
-    # 1. Encontrar el client_id a partir del user_id
-    client_record = await conn.fetchrow("SELECT id FROM clients WHERE user_id = $1", current_user.id)
-    if not client_record:
-        raise HTTPException(status_code=404, detail="No se encontró un cliente asociado a este usuario.")
-    client_id = client_record['id']
-
-    # 2. Obtener todos los préstamos del cliente
-    loan_ids_records = await conn.fetch("SELECT id FROM loans WHERE client_id = $1", client_id)
-    
-    all_client_loans = []
-    for record in loan_ids_records:
-        enriched_loan = await get_enriched_loan(conn, record['id'])
-        if enriched_loan:
-            all_client_loans.append(enriched_loan)
-
-    # 3. Calcular el resumen
-    active_loans = [loan for loan in all_client_loans if loan['status'] == 'active']
+    user_id = current_user.id
+    loan_ids_records = await conn.fetch("SELECT id FROM loans WHERE user_id = $1", user_id)
+    all_user_loans = [await get_enriched_loan(conn, r['id']) for r in loan_ids_records if await get_enriched_loan(conn, r['id'])]
+    active_loans = [loan for loan in all_user_loans if loan['status'] == 'active']
     summary = ClientDashboardSummary(
         active_loans_count=len(active_loans),
         total_outstanding_balance=sum(loan['outstanding_balance'] for loan in active_loans)
     )
-
-    # 4. Obtener los pagos recientes
     recent_payments_records = await conn.fetch(
-        """
-        SELECT p.id, p.loan_id, p.amount_paid, p.payment_date
-        FROM payments p
-        JOIN loans l ON p.loan_id = l.id
-        WHERE l.client_id = $1
-        ORDER BY p.payment_date DESC
-        LIMIT 5
-        """,
-        client_id
+        "SELECT p.id, p.loan_id, p.amount_paid, p.payment_date FROM payments p JOIN loans l ON p.loan_id = l.id WHERE l.user_id = $1 ORDER BY p.payment_date DESC LIMIT 5",
+        user_id
     )
-
     return ClientDashboardResponse(
         summary=summary,
-        loans=[ClientDashboardLoan.model_validate(loan) for loan in all_client_loans],
+        loans=[ClientDashboardLoan.model_validate(loan) for loan in all_user_loans],
         recent_payments=[ClientDashboardPayment.model_validate(dict(p)) for p in recent_payments_records]
     )
 
-
-@router.get("/users", response_model=List[UserResponse])
+@router.get("/users", response_model=PaginatedUserResponse)
 async def read_users(
-    current_user: UserResponse = Depends(get_current_user)
+    page: int = 1,
+    limit: int = 20,
+    conn: asyncpg.Connection = Depends(get_db),
+    current_user: UserInDB = Depends(require_roles(["administrador", "desarrollador"]))
 ):
-    """
-    Obtiene una lista de todos los usuarios.
-    """
-    async with database.db_pool.acquire() as conn:
-        users = await conn.fetch("SELECT id, username, role, associate_id FROM users")
-        return [dict(user) for user in users]
+    offset = (page - 1) * limit
+    total_records = await conn.fetchval("SELECT COUNT(id) FROM users")
+    
+    user_records = await conn.fetch("SELECT * FROM users ORDER BY id LIMIT $1 OFFSET $2", limit, offset)
+    
+    items = []
+    for user_record in user_records:
+        user_dict = dict(user_record)
+        user_dict['roles'] = await get_user_roles(conn, user_dict['id'])
+        items.append(UserResponse.model_validate(user_dict))
 
-# ... (resto de las rutas de /users sin cambios)
+    return {
+        "items": items,
+        "total": total_records,
+        "page": page,
+        "limit": limit,
+        "pages": (total_records + limit - 1) // limit if limit > 0 else 0
+    }

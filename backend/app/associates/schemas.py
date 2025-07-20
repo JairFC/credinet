@@ -1,8 +1,10 @@
 from pydantic import BaseModel, EmailStr, ConfigDict
 from typing import Optional
+from datetime import datetime
 
 class AssociateBase(BaseModel):
     name: str
+    level_id: int
     contact_person: Optional[str] = None
     contact_email: Optional[EmailStr] = None
     default_commission_rate: Optional[float] = 5.0
@@ -15,7 +17,7 @@ class AssociateUpdate(AssociateBase):
 
 class AssociateResponse(AssociateBase):
     id: int
-    default_commission_rate: float
+    updated_at: datetime
     model_config = ConfigDict(from_attributes=True)
 
 class AssociateSummaryResponse(BaseModel):

@@ -1,144 +1,106 @@
 import React, { useState, useEffect } from 'react';
-import apiClient from '../services/api';
 import { Link } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext'; // Importar el hook de autenticación
-import EditAssociateModal from '../components/EditAssociateModal';
-import './ClientsPage.css';
+import apiClient from '../services/api';
+import { useAuth } from '../context/AuthContext';
+
+const PaginationControls = ({ page, pages, onPageChange }) => {
+  if (pages <= 1) return null;
+  return (
+    <div style={{ marginTop: '20px', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '1rem' }}>
+      <button onClick={() => onPageChange(page - 1)} disabled={page <= 1}>Anterior</button>
+      <span>Página {page} de {pages}</span>
+      <button onClick={() => onPageChange(page + 1)} disabled={page >= pages}>Siguiente</button>
+    </div>
+  );
+};
 
 const AssociatesPage = () => {
-  const { user } = useAuth(); // Obtener el usuario actual y su rol
-  const [associates, setAssociates] = useState([]);
+  const { user } = useAuth();
+  const [data, setData] = useState({ items: [], total: 0, page: 1, pages: 1 });
+  const [currentPage, setCurrentPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [name, setName] = useState('');
-  const [contactPerson, setContactPerson] = useState('');
-  const [contactEmail, setContactEmail] = useState('');
-  const [defaultCommissionRate, setDefaultCommissionRate] = useState('5.0'); // Valor por defecto
-  const [formError, setFormError] = useState('');
-  const [editingAssociate, setEditingAssociate] = useState(null);
 
-  const fetchAssociates = async () => {
-    try {
-      setLoading(true);
-      const response = await apiClient.get('/associates/');
-      setAssociates(response.data);
-    } catch (err) {
-      setError('No se pudieron cargar los asociados.');
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const canManage = user && (user.roles.includes('administrador') || user.roles.includes('auxiliar_administrativo'));
+  const canDelete = user && user.roles.includes('administrador');
 
   useEffect(() => {
+    const fetchAssociates = async () => {
+      try {
+        setLoading(true);
+        const response = await apiClient.get(`/associates/?page=${currentPage}`);
+        setData(response.data);
+      } catch (err) {
+        setError('No se pudieron cargar los asociados.');
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    };
     fetchAssociates();
-  }, []);
-
-  const handleCreate = async (e) => {
-    e.preventDefault();
-    setFormError('');
-    try {
-      await apiClient.post('/associates/', {
-        name,
-        contact_person: contactPerson,
-        contact_email: contactEmail,
-        default_commission_rate: parseFloat(defaultCommissionRate),
-      });
-      setName('');
-      setContactPerson('');
-      setContactEmail('');
-      setDefaultCommissionRate('5.0');
-      fetchAssociates();
-    } catch (err) {
-      setFormError(err.response?.data?.detail || 'Error al crear el asociado.');
-    }
-  };
+  }, [currentPage]);
 
   const handleDelete = async (associateId) => {
-    if (!window.confirm('¿Estás seguro de que quieres eliminar este asociado?')) {
-      return;
-    }
+    if (!canDelete || !window.confirm('¿Estás seguro?')) return;
     try {
       await apiClient.delete(`/associates/${associateId}`);
-      fetchAssociates();
+      setCurrentPage(1); // Volver a la primera página
     } catch (err) {
       setError(err.response?.data?.detail || 'No se pudo eliminar el asociado.');
     }
   };
 
-  const handleUpdateSuccess = () => {
-    setEditingAssociate(null);
-    fetchAssociates();
-  };
-
-  const canManage = user && user.role !== 'asociado';
+  if (loading) return <p>Cargando asociados...</p>;
+  if (error) return <p style={{ color: 'red' }}>{error}</p>;
 
   return (
     <div className="clients-page">
       <Link to="/dashboard" className="back-link">← Volver al Dashboard</Link>
-      <h1>Gestión de Asociados</h1>
-      
+      <h1>Gestión de Asociados ({data.total})</h1>
+
       {canManage && (
-        <>
-          <h2>Añadir Nuevo Asociado</h2>
-          <form onSubmit={handleCreate} className="client-form">
-            <input type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="Nombre del Asociado" required />
-            <input type="text" value={contactPerson} onChange={(e) => setContactPerson(e.target.value)} placeholder="Persona de Contacto" />
-            <input type="email" value={contactEmail} onChange={(e) => setContactEmail(e.target.value)} placeholder="Email de Contacto" />
-            <div className="form-group">
-              <label htmlFor="defaultCommissionRate">Tasa de Comisión (%)</label>
-              <input id="defaultCommissionRate" type="number" value={defaultCommissionRate} onChange={(e) => setDefaultCommissionRate(e.target.value)} placeholder="5.0" />
-            </div>
-            <button type="submit">Crear Asociado</button>
-            {formError && <p style={{ color: 'red' }}>{formError}</p>}
-          </form>
-          <hr />
-        </>
+        <div className="toolbar" style={{ marginBottom: '20px' }}>
+          <Link to="/associates/new">
+            <button>+ Crear Nuevo Asociado</button>
+          </Link>
+        </div>
       )}
 
-      <h2>Lista de Asociados</h2>
-      {loading && <p>Cargando...</p>}
-      {error && <p style={{ color: 'red' }}>{error}</p>}
       <table className="clients-table">
         <thead>
           <tr>
             <th>ID</th>
             <th>Nombre</th>
+            <th>Nivel ID</th>
             <th>Contacto</th>
             <th>Email</th>
-            {canManage && <th>Tasa Comisión (%)</th>}
-            <th>Acciones</th>
+            <th>Comisión (%)</th>
+            {canManage && <th>Acciones</th>}
           </tr>
         </thead>
         <tbody>
-          {associates.map(assoc => (
+          {data.items.map(assoc => (
             <tr key={assoc.id}>
               <td>{assoc.id}</td>
               <td>{assoc.name}</td>
+              <td>{assoc.level_id}</td>
               <td>{assoc.contact_person || 'N/A'}</td>
               <td>{assoc.contact_email || 'N/A'}</td>
-              {canManage && <td>{assoc.default_commission_rate.toFixed(2)}%</td>}
-              <td className="actions-cell">
-                <Link to={`/associates/${assoc.id}/loans`}><button>Préstamos</button></Link>
-                {canManage && (
-                  <>
-                    <button onClick={() => setEditingAssociate(assoc)}>Editar</button>
+              <td>{assoc.default_commission_rate.toFixed(2)}</td>
+              {canManage && (
+                <td className="actions-cell">
+                  <Link to={`/associates/${assoc.id}/loans`}><button>Préstamos</button></Link>
+                  <button>Editar</button>
+                  {canDelete && (
                     <button onClick={() => handleDelete(assoc.id)} style={{ marginLeft: '5px' }}>Eliminar</button>
-                  </>
-                )}
-              </td>
+                  )}
+                </td>
+              )}
             </tr>
           ))}
         </tbody>
       </table>
-
-      {editingAssociate && canManage && (
-        <EditAssociateModal
-          associate={editingAssociate}
-          onUpdateSuccess={handleUpdateSuccess}
-          onClose={() => setEditingAssociate(null)}
-        />
-      )}
+      <PaginationControls page={data.page} pages={data.pages} onPageChange={setCurrentPage} />
     </div>
   );
 };

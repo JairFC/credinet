@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import apiClient from '../services/api';
-import './ClientsPage.css'; // Reutilizamos los estilos
 
 const UserDetailsPage = () => {
   const { userId } = useParams();

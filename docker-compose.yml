@@ -7,7 +7,7 @@ services:
     ports:
       - "8001:8000"
     volumes:
-      - ./backend/app:/app/app
+      - ./backend:/code
     environment:
       POSTGRES_USER: credinet_user
       POSTGRES_PASSWORD: credinet_pass
@@ -37,7 +37,8 @@ services:
     restart: unless-stopped
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql
+      - ./db/init.sql:/docker-entrypoint-initdb.d/10_init_schema.sql
+      - ./db/seeds/01_initial_data.sql:/docker-entrypoint-initdb.d/20_initial_data.sql
     environment:
       POSTGRES_USER: credinet_user
       POSTGRES_PASSWORD: credinet_pass
@@ -49,6 +50,22 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+    networks:
+      - credinet
+
+  smoke-tester:
+    build:
+      context: ./backend
+    container_name: credinet_smoke_tester
+    depends_on:
+      backend:
+        condition: service_started
+    command: ["python", "smoke_test.py"]
+    environment:
+      POSTGRES_USER: credinet_user
+      POSTGRES_PASSWORD: credinet_pass
+      POSTGRES_DB: credinet_db
+      POSTGRES_HOST: db
     networks:
       - credinet
 

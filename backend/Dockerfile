@@ -5,8 +5,12 @@ FROM python:3.11-slim
 WORKDIR /code
 ENV PYTHONPATH=/code
 
-COPY ./requirements.txt /code/requirements.txt
+COPY ./requirements.txt /code/
 RUN pip install --no-cache-dir --upgrade -r /code/requirements.txt
 
-COPY ./app /code/app
+COPY . /code/
+
+# No se puede ejecutar el smoke test aquí porque la BD no está disponible durante el build.
+# Se mantiene el servicio smoke-tester en docker-compose.yml como la mejor práctica.
+
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
