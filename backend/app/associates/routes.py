@@ -19,16 +19,39 @@ class PaginatedAssociateResponse(BaseModel):
 
 router = APIRouter()
 
-@router.get("/", response_model=PaginatedAssociateResponse)
+@router.get("/", response_model=PaginatedAssociateResponse, dependencies=[Depends(require_roles(["desarrollador", "administrador", "auxiliar_administrativo"]))])
 async def get_associates(
     page: int = 1,
     limit: int = 20,
+    search: str = None,
     conn: asyncpg.Connection = Depends(database.get_db)
 ):
     offset = (page - 1) * limit
-    total_records = await conn.fetchval("SELECT COUNT(id) FROM associates")
-    query = "SELECT * FROM associates ORDER BY id LIMIT $1 OFFSET $2"
-    records = await conn.fetch(query, limit, offset)
+    
+    params = []
+    where_clauses = []
+
+    if search:
+        params.append(f"%{search}%")
+        search_fields = ["name", "contact_person", "contact_email"]
+        search_conditions = " OR ".join([f"{field} ILIKE ${len(params)}" for field in search_fields])
+        where_clauses.append(f"({search_conditions})")
+
+    where_sql = ""
+    if where_clauses:
+        where_sql = " WHERE " + " AND ".join(where_clauses)
+
+    base_query = f"FROM associates{where_sql}"
+    count_query = "SELECT COUNT(id) " + base_query
+    data_query = "SELECT * " + base_query
+
+    total_records = await conn.fetchval(count_query, *params)
+    
+    data_query += f" ORDER BY id LIMIT ${len(params) + 1} OFFSET ${len(params) + 2}"
+    params.extend([limit, offset])
+    
+    records = await conn.fetch(data_query, *params)
+    
     return {
         "items": [dict(rec) for rec in records],
         "total": total_records,

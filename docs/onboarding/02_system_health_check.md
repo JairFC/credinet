@@ -1,50 +1,57 @@
-# Guía: System Health Check
+# Guía: System Health Check (SH)
 
-Para garantizar la estabilidad del proyecto y evitar regresiones, hemos implementado un servicio de pruebas automatizadas llamado "System Health Check" (`smoke-tester`). Su misión es verificar que los flujos de usuario más críticos de la API funcionen correctamente después de cada despliegue.
+El System Health Check (SH) es el sistema de diagnóstico de arranque de Credinet. Su misión es actuar como la primera línea de defensa contra regresiones, verificando la integridad de todos los componentes críticos de la aplicación después de cada cambio.
+
+No es solo una prueba, es una simulación de una secuencia de arranque que valida desde la conectividad básica hasta las reglas de negocio más complejas.
 
 ## ¿Cómo Funciona?
 
-El servicio se ejecuta automáticamente con `docker compose up`. Realiza una serie de pruebas en secuencia. Si alguna prueba falla, el script termina con un error, indicando que el despliegue está roto.
+El servicio `smoke-tester` se ejecuta automáticamente con `docker compose up`. Realiza una serie de chequeos en un orden estricto. Si un chequeo crítico falla, el proceso se detiene y reporta un error, indicando que el sistema está en un estado inestable.
 
-Puedes ver el resultado en cualquier momento con:
-```bash
-docker logs credinet_smoke_tester
-```
+### Visualización y Registro
 
-## Validaciones Actuales
+Puedes monitorear el SH de dos maneras:
 
-El script realiza las siguientes validaciones:
+1.  **En Tiempo Real:**
+    ```bash
+    docker logs -f credinet_smoke_tester
+    ```
+    Verás una salida clara y formateada, indicando el progreso y el resultado (`[ OK ]` o `[FAIL]`) de cada paso.
 
-1.  **[1/6] Ping al Servidor:**
-    *   **Acción:** `GET /api/ping`
-    *   **Verifica:** Que el servidor backend esté en línea y respondiendo.
+2.  **Registro Persistente:**
+    El SH genera un log detallado de cada ejecución en `backend/system_health_check.log`. Este archivo es invaluable para la depuración post-mortem.
 
-2.  **[2/6] Login de Administrador:**
-    *   **Acción:** `POST /api/auth/login` con credenciales de `admin`.
-    *   **Verifica:** La lógica de autenticación, hashing de contraseñas y conexión a la BD.
+## Cobertura de Chequeos
 
-3.  **[3/6] Endpoints Críticos de Administrador:**
-    *   **Acción:** Usa el token de admin para hacer peticiones `GET` a las rutas principales.
-    *   **Verifica:**
-        *   `GET /api/auth/users`: La paginación de usuarios funciona.
-        *   `GET /api/associates/`: La paginación de asociados funciona.
-        *   `GET /api/loans/`: La paginación de préstamos funciona.
-        *   `GET /api/loans/summary`: El dashboard de admin funciona.
-        *   `GET /api/loans/1`: La vista de detalle de un préstamo funciona.
+El SH está estructurado en secciones lógicas para facilitar su entendimiento y expansión.
 
-4.  **[4/6] Login de Asociado:**
-    *   **Acción:** `POST /api/auth/login` con credenciales de `asociado_test`.
-    *   **Verifica:** La autenticación para roles no administrativos.
+### Sección 1: Conectividad
+-   **[1/12] PING:** Verifica que el servidor backend esté en línea y respondiendo en `/api/ping`.
 
-5.  **[5/6] Dashboard de Asociado:**
-    *   **Acción:** `GET /api/associates/dashboard` con el token de asociado.
-    *   **Verifica:** El endpoint específico del dashboard de asociado.
+### Sección 2: Autenticación (AUTH)
+-   **[2/12] Login Admin:** Confirma que el usuario `admin` puede autenticarse y recibir un token.
+-   **[3/12] Login Asociado:** Confirma que el usuario `asociado_test` puede autenticarse.
+-   **[4/12] Login Cliente:** Confirma que la usuaria `sofia.vargas` puede autenticarse.
 
-6.  **[6/6] Lista de Préstamos de Asociado:**
-    *   **Acción:** `GET /api/loans/` con el token de asociado.
-    *   **Verifica:** Que el filtrado automático de préstamos por asociado funcione y devuelva datos.
+### Sección 3: Control de Acceso Basado en Roles (RBAC)
+Esta es la sección más crítica. Verifica que cada rol tenga los permisos correctos y, más importante, que **no tenga** permisos que no le corresponden.
+
+-   **Permisos de Administrador:**
+    -   **[5/12]** Puede acceder a la lista de usuarios (`/api/users`).
+    -   **[6/12]** Puede acceder a la lista de asociados (`/api/associates/`).
+    -   **[7/12]** Puede acceder al dashboard global (`/api/loans/summary`).
+
+-   **Permisos de Asociado:**
+    -   **[8/12]** **NO PUEDE** acceder a la lista de usuarios.
+    -   **[9/12]** Puede acceder a su propio dashboard (`/api/associates/dashboard`).
+
+-   **Permisos de Cliente:**
+    -   **[10/12]** **NO PUEDE** acceder a la lista de usuarios.
+    -   **[11/12]** **NO PUEDE** acceder a la lista de asociados.
+    -   **[12/12]** Puede acceder a su propio dashboard (`/api/auth/me/dashboard`).
 
 ## Protocolo de Uso
 
--   **Antes de Pedir Validación:** Siempre ejecuta el health check después de un despliegue. Si falla, depúralo.
--   **Al Añadir Nuevas Rutas:** Añade una nueva prueba al script `backend/smoke_test.py` para cubrir la nueva funcionalidad.
+-   **Obligatorio:** El SH **debe pasar al 100%** antes de fusionar cualquier cambio a la rama principal.
+-   **Expansión:** Al añadir una nueva funcionalidad o endpoint, es **mandatorio** añadir un nuevo chequeo al script `backend/smoke_test.py` en la sección correspondiente.
+-   **Estabilidad del Entorno:** El `docker-compose.yml` ha sido fortalecido con un `healthcheck` de base de datos que previene condiciones de carrera durante el arranque, asegurando que el SH se ejecute sobre una base estable.

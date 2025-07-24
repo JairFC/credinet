@@ -46,10 +46,26 @@ services:
     ports:
       - "5432:5432"
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U credinet_user -d credinet_db"]
+      test: ["CMD-SHELL", "psql -U credinet_user -d credinet_db -c 'SELECT 1 FROM users LIMIT 1;'"]
       interval: 5s
       timeout: 5s
-      retries: 5
+      retries: 10
+    networks:
+      - credinet
+
+  smoke-tester:
+    build:
+      context: ./backend
+    container_name: credinet_smoke_tester
+    depends_on:
+      backend:
+        condition: service_started
+    command: ["python", "smoke_test.py"]
+    environment:
+      POSTGRES_USER: credinet_user
+      POSTGRES_PASSWORD: credinet_pass
+      POSTGRES_DB: credinet_db
+      POSTGRES_HOST: db
     networks:
       - credinet
 
