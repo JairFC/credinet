@@ -49,34 +49,41 @@ async def get_loans(
     current_user: UserInDB = Depends(get_current_user)
 ):
     offset = (page - 1) * limit
-    params, conditions = [], []
+    params = []
+    conditions = []
+    
+    base_from_clause = "FROM loans l"
+    join_clause = " JOIN users u ON l.user_id = u.id" if search else ""
 
     # Filtros existentes
     if "asociado" in current_user.roles:
-        conditions.append(f"l.associate_id = ${len(params) + 1}")
         params.append(current_user.associate_id)
+        conditions.append(f"l.associate_id = ${len(params) + 1}")
     if user_id:
-        conditions.append(f"l.user_id = ${len(params) + 1}")
         params.append(user_id)
+        conditions.append(f"l.user_id = ${len(params) + 1}")
     if status:
-        conditions.append(f"l.status = ${len(params) + 1}")
         params.append(status)
+        conditions.append(f"l.status = ${len(params) + 1}")
     
-    # Nuevo filtro de búsqueda universal
     if search:
-        params.append(f"%{search}%")
-        search_conditions = "u.first_name ILIKE ${len(params)} OR u.last_name ILIKE ${len(params)}"
-        conditions.append(f"({search_conditions})")
+        search_terms = search.split()
+        search_conditions = []
+        for term in search_terms:
+            params.append(f"%{term}%")
+            search_conditions.append(f"(u.first_name ILIKE ${len(params)} OR u.last_name ILIKE ${len(params)})")
+        conditions.append(" AND ".join(search_conditions))
 
-    # Construcción de la consulta
-    join_clause = "JOIN users u ON l.user_id = u.id" if search else ""
     where_clause = f"WHERE {' AND '.join(conditions)}" if conditions else ""
     
-    total_query = f"SELECT COUNT(l.id) FROM loans l {join_clause} {where_clause}"
+    total_query = f"SELECT COUNT(l.id) {base_from_clause}{join_clause} {where_clause}"
     total_records = await conn.fetchval(total_query, *params)
     
-    ids_query = f"SELECT l.id FROM loans l {join_clause} {where_clause} ORDER BY l.id DESC LIMIT ${len(params) + 1} OFFSET ${len(params) + 2}"
-    loan_ids_records = await conn.fetch(ids_query, *params, limit, offset)
+    params.append(limit)
+    params.append(offset)
+    ids_query = f"SELECT l.id {base_from_clause}{join_clause} {where_clause} ORDER BY l.id DESC LIMIT ${len(params)-1} OFFSET ${len(params)}"
+    
+    loan_ids_records = await conn.fetch(ids_query, *params)
     
     enriched_loans = [await get_enriched_loan(conn, r['id']) for r in loan_ids_records if await get_enriched_loan(conn, r['id'])]
     
