@@ -2,114 +2,138 @@ import requests
 import os
 import sys
 import time
+import logging
+from datetime import datetime
 
-API_URL = "http://backend:8000"
+# --- Configuración de Logging ---
+LOG_FILE = '/code/system_health_check.log'
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s,%(levelname)s,%(message)s',
+    handlers=[
+        logging.FileHandler(LOG_FILE),
+        logging.StreamHandler(sys.stdout)
+    ]
+)
+
+# --- Configuración de la API y Usuarios de Prueba ---
+API_URL = "http://backend:8000/api"
 ADMIN_USERNAME = "admin"
 ASSOC_USERNAME = "asociado_test"
+CLIENT_USERNAME = "sofia.vargas"
 PASSWORD = "Sparrow20"
 
-def run_health_check():
-    print("--- Iniciando System Health Check ---")
-    time.sleep(5)
+# --- Variables Globales ---
+test_counter = 0
+total_tests = 12 # Actualizar este número al añadir más pruebas
+failed_tests = 0
+admin_token = None
+assoc_token = None
+client_token = None
 
-    # 1. Ping
-    try:
-        response = requests.get(f"{API_URL}/api/ping", timeout=5)
-        response.raise_for_status()
-        print("✅ [1/7] Servidor está respondiendo.")
-    except Exception as e:
-        print(f"❌ [1/7] FALLO CRÍTICO: El servidor no responde. Error: {e}")
-        sys.exit(1)
+# --- Funciones de Ayuda ---
+def print_header():
+    logging.info("=" * 60)
+    logging.info("  INICIANDO SYSTEM HEALTH CHECK (SH) - CREDINET")
+    logging.info("=" * 60)
+    time.sleep(2) # Pausa dramática
 
-    # 2. Login Admin
-    admin_token = None
-    try:
-        response = requests.post(f"{API_URL}/api/auth/login", data={'username': ADMIN_USERNAME, 'password': PASSWORD}, timeout=5)
-        response.raise_for_status()
-        admin_token = response.json().get("access_token")
-        if not admin_token:
-            raise ValueError("No se recibió access_token en el login.")
-        print("✅ [2/7] Login de Admin funciona.")
-    except Exception as e:
-        print(f"❌ [2/7] FALLO CRÍTICO: Login de Admin falló. Error: {e}")
-        sys.exit(1)
+def print_footer():
+    logging.info("-" * 60)
+    if failed_tests == 0:
+        logging.info(f"[SUCCESS] Todos los {total_tests} chequeos del sistema pasaron.")
+    else:
+        logging.error(f"[FAILURE] {failed_tests} de {total_tests} chequeos fallaron.")
+    logging.info("=" * 60)
 
-    # 3. Admin Endpoints
-    admin_headers = {"Authorization": f"Bearer {admin_token}"}
-    admin_endpoints = {
-        "/api/auth/users": "items",
-        "/api/associates/": "items",
-        "/api/loans/": "items",
-        "/api/loans/summary": "total_loans",
-        "/api/loans/1": "id"
-    }
-    print("✅ [3/7] Probando endpoints de Admin...")
-    for endpoint, key in admin_endpoints.items():
-        try:
-            res = requests.get(f"{API_URL}{endpoint}", headers=admin_headers, timeout=5)
-            res.raise_for_status()
-            if key in res.json():
-                print(f"  - {endpoint}: OK")
-            else:
-                print(f"  - ❌ FALLO: {endpoint} no contiene la clave '{key}'.")
-                sys.exit(1)
-        except Exception as e:
-            print(f"  - ❌ FALLO: {endpoint} falló. Error: {e}")
-            sys.exit(1)
-
-    # 4. Login Asociado
-    assoc_token = None
-    try:
-        response = requests.post(f"{API_URL}/api/auth/login", data={'username': ASSOC_USERNAME, 'password': PASSWORD}, timeout=5)
-        response.raise_for_status()
-        assoc_token = response.json().get("access_token")
-        if not assoc_token:
-            raise ValueError("No se recibió access_token en el login de asociado.")
-        print("✅ [4/7] Login de Asociado funciona.")
-    except Exception as e:
-        print(f"❌ [4/7] FALLO CRÍTICO: Login de Asociado falló. Error: {e}")
-        sys.exit(1)
-
-    # 5. Dashboard Asociado
-    print("✅ [5/7] Probando dashboard de Asociado...")
-    try:
-        assoc_headers = {"Authorization": f"Bearer {assoc_token}"}
-        res = requests.get(f"{API_URL}/api/associates/dashboard", headers=assoc_headers, timeout=5)
-        res.raise_for_status()
-        print(f"  - /api/associates/dashboard: OK")
-    except Exception as e:
-        print(f"  - ❌ FALLO: /api/associates/dashboard falló. Error: {e}")
-        sys.exit(1)
+def run_test(description, test_func, *args):
+    global test_counter, failed_tests
+    test_counter += 1
+    padding = 50 - len(description)
+    print(f"[{test_counter}/{total_tests}] {description}{'.' * padding}", end="", flush=True)
     
-    # 6. Lista de Préstamos de Asociado
-    print("✅ [6/7] Probando lista de préstamos de Asociado...")
     try:
-        assoc_headers = {"Authorization": f"Bearer {assoc_token}"}
-        res = requests.get(f"{API_URL}/api/loans/", headers=assoc_headers, timeout=5)
-        res.raise_for_status()
-        data = res.json()
-        if "items" in data and data['total'] > 0:
-             print(f"  - /api/loans/ (asociado): OK (Total: {data['total']})")
+        result = test_func(*args)
+        if result is not False:
+            print("[  OK  ]")
+            logging.info(f"[PASS] {description}")
+            return result
         else:
-            print(f"  - ❌ FALLO: /api/loans/ (asociado) no devolvió datos.")
-            sys.exit(1)
+            raise Exception("Resultado de prueba fue False")
     except Exception as e:
-        print(f"  - ❌ FALLO: /api/loans/ (asociado) falló. Error: {e}")
+        print("[ FAIL ]")
+        logging.error(f"[FAIL] {description}. Razón: {e}", exc_info=False)
+        failed_tests += 1
+        return None
+
+# --- Definiciones de Pruebas ---
+
+def check_ping():
+    response = requests.get(f"{API_URL}/ping", timeout=10)
+    response.raise_for_status()
+    return True
+
+def login_user(username, password):
+    response = requests.post(f"{API_URL}/auth/login", data={'username': username, 'password': password}, timeout=10)
+    response.raise_for_status()
+    token = response.json().get("access_token")
+    if not token:
+        raise ValueError("No se recibió access_token en el login.")
+    return token
+
+def check_endpoint_access(token, endpoint, expected_key):
+    headers = {"Authorization": f"Bearer {token}"}
+    response = requests.get(f"{API_URL}{endpoint}", headers=headers, timeout=10)
+    response.raise_for_status()
+    if expected_key not in response.json():
+        raise ValueError(f"La respuesta de {endpoint} no contiene la clave '{expected_key}'.")
+    return True
+
+def check_endpoint_denied(token, endpoint, expected_status=403):
+    headers = {"Authorization": f"Bearer {token}"}
+    response = requests.get(f"{API_URL}{endpoint}", headers=headers, timeout=10)
+    if response.status_code != expected_status:
+        raise ValueError(f"Acceso a {endpoint} debería ser {expected_status} pero fue {response.status_code}.")
+    return True
+
+# --- Secuencia de Arranque ---
+def main():
+    global admin_token, assoc_token, client_token
+    print_header()
+
+    # --- SECCIÓN 1: CONECTIVIDAD ---
+    run_test("PING: Verificando conectividad del servidor", check_ping)
+
+    # --- SECCIÓN 2: AUTENTICACIÓN (LOGIN) ---
+    admin_token = run_test("AUTH: Login de Administrador", login_user, ADMIN_USERNAME, PASSWORD)
+    assoc_token = run_test("AUTH: Login de Asociado", login_user, ASSOC_USERNAME, PASSWORD)
+    client_token = run_test("AUTH: Login de Cliente", login_user, CLIENT_USERNAME, PASSWORD)
+
+    # --- SECCIÓN 3: PERMISOS DE ADMINISTRADOR ---
+    if admin_token:
+        run_test("RBAC: Admin puede ver lista de Usuarios", check_endpoint_access, admin_token, "/auth/users", "items")
+        run_test("RBAC: Admin puede ver lista de Asociados", check_endpoint_access, admin_token, "/associates/", "items")
+        run_test("RBAC: Admin puede ver Dashboard Global", check_endpoint_access, admin_token, "/loans/summary", "total_loans")
+
+    # --- SECCIÓN 4: PERMISOS DE ASOCIADO ---
+    if assoc_token:
+        run_test("RBAC: Asociado NO PUEDE ver Usuarios", check_endpoint_denied, assoc_token, "/auth/users")
+        run_test("RBAC: Asociado puede ver su Dashboard", check_endpoint_access, assoc_token, "/associates/dashboard", "summary")
+
+    # --- SECCIÓN 5: PERMISOS DE CLIENTE ---
+    if client_token:
+        run_test("RBAC: Cliente NO PUEDE ver Usuarios", check_endpoint_denied, client_token, "/auth/users")
+        run_test("RBAC: Cliente NO PUEDE ver Asociados", check_endpoint_denied, client_token, "/associates/")
+        run_test("RBAC: Cliente puede ver su Dashboard", check_endpoint_access, client_token, "/auth/me/dashboard", "summary")
+
+    print_footer()
+
+    if failed_tests > 0:
         sys.exit(1)
-
-    # 7. Prueba Multi-Rol
-    print("✅ [7/7] Probando acceso dual para usuario multi-rol...")
-    try:
-        res = requests.get(f"{API_URL}/api/auth/me/dashboard", headers=admin_headers, timeout=5)
-        res.raise_for_status()
-        print("  - /api/auth/me/dashboard: OK (Admin también es cliente y tiene acceso)")
-    except Exception as e:
-        print(f"  - ❌ FALLO: /api/auth/me/dashboard con token de admin falló inesperadamente. Error: {e}")
-        sys.exit(1)
-
-
-    print("\n--- System Health Check Exitoso ---")
-    sys.exit(0)
+    else:
+        sys.exit(0)
 
 if __name__ == "__main__":
-    run_health_check()
+    # Esperar a que el backend esté completamente listo
+    time.sleep(5) 
+    main()

@@ -19,7 +19,7 @@ class PaginatedAssociateResponse(BaseModel):
 
 router = APIRouter()
 
-@router.get("/", response_model=PaginatedAssociateResponse)
+@router.get("/", response_model=PaginatedAssociateResponse, dependencies=[Depends(require_roles(["desarrollador", "administrador", "auxiliar_administrativo"]))])
 async def get_associates(
     page: int = 1,
     limit: int = 20,
