@@ -69,6 +69,22 @@ services:
     networks:
       - credinet
 
+  smoke-tester:
+    build:
+      context: ./backend
+    container_name: credinet_smoke_tester
+    depends_on:
+      backend:
+        condition: service_started
+    command: ["python", "smoke_test.py"]
+    environment:
+      POSTGRES_USER: credinet_user
+      POSTGRES_PASSWORD: credinet_pass
+      POSTGRES_DB: credinet_db
+      POSTGRES_HOST: db
+    networks:
+      - credinet
+
 volumes:
   postgres_data:
 
