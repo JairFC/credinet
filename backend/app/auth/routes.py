@@ -96,13 +96,40 @@ async def get_client_dashboard(
 async def read_users(
     page: int = 1,
     limit: int = 20,
+    role: str = None,
+    search: str = None,
     conn: asyncpg.Connection = Depends(get_db),
     current_user: UserInDB = Depends(require_roles(["administrador", "desarrollador"]))
 ):
     offset = (page - 1) * limit
-    total_records = await conn.fetchval("SELECT COUNT(id) FROM users")
     
-    user_records = await conn.fetch("SELECT * FROM users ORDER BY id LIMIT $1 OFFSET $2", limit, offset)
+    params = []
+    where_clauses = []
+
+    if role:
+        params.append(role)
+        where_clauses.append(f"id IN (SELECT user_id FROM user_roles ur JOIN roles r ON ur.role_id = r.id WHERE r.name = ${len(params)})")
+
+    if search:
+        params.append(f"%{search}%")
+        search_fields = ["username", "first_name", "last_name", "email", "phone_number"]
+        search_conditions = " OR ".join([f"{field} ILIKE ${len(params)}" for field in search_fields])
+        where_clauses.append(f"({search_conditions})")
+
+    where_sql = ""
+    if where_clauses:
+        where_sql = " WHERE " + " AND ".join(where_clauses)
+
+    base_query = f"FROM users{where_sql}"
+    count_query = "SELECT COUNT(id) " + base_query
+    data_query = "SELECT * " + base_query
+
+    total_records = await conn.fetchval(count_query, *params)
+    
+    data_query += f" ORDER BY id LIMIT ${len(params) + 1} OFFSET ${len(params) + 2}"
+    params.extend([limit, offset])
+    
+    user_records = await conn.fetch(data_query, *params)
     
     items = []
     for user_record in user_records:

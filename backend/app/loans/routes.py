@@ -42,6 +42,7 @@ async def get_loans(
     user_id: Optional[int] = None,
     associate_id: Optional[int] = None,
     status: Optional[str] = None,
+    search: str = None,
     page: int = 1,
     limit: int = 20,
     conn: asyncpg.Connection = Depends(get_db),
@@ -49,6 +50,8 @@ async def get_loans(
 ):
     offset = (page - 1) * limit
     params, conditions = [], []
+
+    # Filtros existentes
     if "asociado" in current_user.roles:
         conditions.append(f"l.associate_id = ${len(params) + 1}")
         params.append(current_user.associate_id)
@@ -58,12 +61,25 @@ async def get_loans(
     if status:
         conditions.append(f"l.status = ${len(params) + 1}")
         params.append(status)
+    
+    # Nuevo filtro de búsqueda universal
+    if search:
+        params.append(f"%{search}%")
+        search_conditions = "u.first_name ILIKE ${len(params)} OR u.last_name ILIKE ${len(params)}"
+        conditions.append(f"({search_conditions})")
+
+    # Construcción de la consulta
+    join_clause = "JOIN users u ON l.user_id = u.id" if search else ""
     where_clause = f"WHERE {' AND '.join(conditions)}" if conditions else ""
-    total_query = f"SELECT COUNT(l.id) FROM loans l {where_clause}"
+    
+    total_query = f"SELECT COUNT(l.id) FROM loans l {join_clause} {where_clause}"
     total_records = await conn.fetchval(total_query, *params)
-    ids_query = f"SELECT l.id FROM loans l {where_clause} ORDER BY l.id DESC LIMIT ${len(params) + 1} OFFSET ${len(params) + 2}"
+    
+    ids_query = f"SELECT l.id FROM loans l {join_clause} {where_clause} ORDER BY l.id DESC LIMIT ${len(params) + 1} OFFSET ${len(params) + 2}"
     loan_ids_records = await conn.fetch(ids_query, *params, limit, offset)
+    
     enriched_loans = [await get_enriched_loan(conn, r['id']) for r in loan_ids_records if await get_enriched_loan(conn, r['id'])]
+    
     return {
         "items": enriched_loans, "total": total_records, "page": page, "limit": limit,
         "pages": (total_records + limit - 1) // limit if limit > 0 else 0
