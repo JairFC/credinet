@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
+
+import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import apiClient from '../services/api';
 
-const CreateAssociatePage = () => {
+const CreateClientPage = () => {
   const [formData, setFormData] = useState({
     username: '',
     password: '',
@@ -11,19 +12,23 @@ const CreateAssociatePage = () => {
     last_name: '',
     email: '',
     phone_number: '',
-    // Campos específicos del asociado
-    level_id: 1, // Valor por defecto, se puede cargar dinámicamente
-    default_commission_rate: 5.0,
   });
-  const [formErrors, setFormErrors] = useState({});
+  const [beneficiaryData, setBeneficiaryData] = useState({
+    full_name: '',
+    relationship: '',
+    phone_number: '',
+  });
+  const [isBeneficiaryVisible, setIsBeneficiaryVisible] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const navigate = useNavigate();
 
+  const [formErrors, setFormErrors] = useState({});
+
   const validatePhoneNumber = (number) => {
     const digits_only = number.replace(/\D/g, '');
     return digits_only.length === 10;
-  };
+  }
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -37,14 +42,30 @@ const CreateAssociatePage = () => {
     }
   };
 
+  const handleBeneficiaryChange = (e) => {
+    const { name, value } = e.target;
+    setBeneficiaryData(prev => ({ ...prev, [name]: value }));
+    if (name === 'phone_number') {
+      if (value && !validatePhoneNumber(value)) {
+        setFormErrors(prev => ({...prev, beneficiary_phone: 'El teléfono del beneficiario debe tener 10 dígitos.'}));
+      } else {
+        setFormErrors(prev => ({...prev, beneficiary_phone: ''}));
+      }
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
     setSuccess('');
 
-    // Validaciones previas al envío
+    // Re-validar todo antes de enviar
     if (!validatePhoneNumber(formData.phone_number)) {
-      setError('El formato del número de teléfono es incorrecto.');
+      setError('El formato del número de teléfono del cliente es incorrecto.');
+      return;
+    }
+    if (isBeneficiaryVisible && beneficiaryData.full_name && !validatePhoneNumber(beneficiaryData.phone_number)) {
+      setError('El formato del número de teléfono del beneficiario es incorrecto.');
       return;
     }
     if (formData.password !== formData.confirmPassword) {
@@ -54,40 +75,29 @@ const CreateAssociatePage = () => {
 
     try {
       const userData = {
-        username: formData.username,
-        password: formData.password,
-        first_name: formData.first_name,
-        last_name: formData.last_name,
-        email: formData.email,
-        phone_number: formData.phone_number,
-        roles: ['asociado'], // Rol de asociado
-        associate_data: {
-          name: `${formData.first_name} ${formData.last_name}`,
-          level_id: parseInt(formData.level_id, 10),
-          contact_person: `${formData.first_name} ${formData.last_name}`,
-          contact_email: formData.email,
-          default_commission_rate: parseFloat(formData.default_commission_rate),
-        },
+        ...formData,
+        roles: ['cliente'],
+        beneficiary: isBeneficiaryVisible && beneficiaryData.full_name ? beneficiaryData : null,
       };
 
       await apiClient.post('/auth/users', userData);
       
-      setSuccess('¡Asociado registrado con éxito! Redirigiendo a la lista de asociados...');
+      setSuccess('¡Cliente registrado con éxito! Redirigiendo a la lista de clientes...');
       setTimeout(() => {
-        navigate('/associates');
+        navigate('/clients');
       }, 2000);
 
     } catch (err) {
-      const errorMessage = err.response?.data?.detail || 'Ocurrió un error inesperado al crear el asociado.';
+      const errorMessage = err.response?.data?.detail || 'Ocurrió un error inesperado al crear el cliente.';
       setError(errorMessage);
-      console.error('Error en el registro de asociado:', err.response);
+      console.error('Error en el registro de cliente:', err.response);
     }
   };
 
   return (
     <div className="clients-page">
-      <Link to="/associates" className="back-link">← Volver a Asociados</Link>
-      <h1>Crear Nuevo Asociado</h1>
+      <Link to="/clients" className="back-link">← Volver a Clientes</Link>
+      <h1>Crear Nuevo Cliente</h1>
       <form onSubmit={handleSubmit} className="user-form">
         <div className="form-group">
           <label>Nombre de Usuario</label>
@@ -119,25 +129,38 @@ const CreateAssociatePage = () => {
           <input type="password" name="confirmPassword" value={formData.confirmPassword} onChange={handleChange} required />
         </div>
 
-        {/* Campos específicos del asociado */}
-        <div className="form-group">
-          <label>Nivel de Asociado (ID)</label>
-          <input type="number" name="level_id" value={formData.level_id} onChange={handleChange} required />
-        </div>
-        <div className="form-group">
-          <label>Tasa de Comisión por Defecto (%)</label>
-          <input type="number" step="0.01" name="default_commission_rate" value={formData.default_commission_rate} onChange={handleChange} required />
+        <div className="collapsible-section">
+          <button type="button" onClick={() => setIsBeneficiaryVisible(!isBeneficiaryVisible)} className="collapsible-header">
+            Beneficiario (Opcional) {isBeneficiaryVisible ? '▲' : '▼'}
+          </button>
+          {isBeneficiaryVisible && (
+            <div className="collapsible-content">
+              <div className="form-group">
+                <label>Nombre Completo del Beneficiario</label>
+                <input type="text" name="full_name" value={beneficiaryData.full_name} onChange={handleBeneficiaryChange} />
+              </div>
+              <div className="form-group">
+                <label>Parentesco</label>
+                <input type="text" name="relationship" value={beneficiaryData.relationship} onChange={handleBeneficiaryChange} />
+              </div>
+              <div className="form-group">
+                <label>Teléfono del Beneficiario</label>
+                <input type="text" name="phone_number" value={beneficiaryData.phone_number} onChange={handleBeneficiaryChange} />
+                {formErrors.beneficiary_phone && <span className="field-error-message">{formErrors.beneficiary_phone}</span>}
+              </div>
+            </div>
+          )}
         </div>
         
         {error && <p className="error-message">{error}</p>}
         {success && <p className="success-message">{success}</p>}
 
         <div className="modal-actions">
-          <button type="submit">Crear Asociado</button>
+          <button type="submit">Crear Cliente</button>
         </div>
       </form>
     </div>
   );
 };
 
-export default CreateAssociatePage;
+export default CreateClientPage;

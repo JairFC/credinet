@@ -32,6 +32,8 @@ async def register_user(
                 user_data.associate_id, user_data.birth_date, user_data.curp
             )
 
+            user_dict = dict(new_user_record) # Initialize user_dict here
+
             role_ids_records = await conn.fetch("SELECT id FROM roles WHERE name = ANY($1::text[])", user_data.roles)
             if len(role_ids_records) != len(user_data.roles):
                 raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Uno o más roles no son válidos.")
@@ -40,10 +42,47 @@ async def register_user(
             for role_id in role_ids:
                 await conn.execute("INSERT INTO user_roles (user_id, role_id) VALUES ($1, $2)", new_user_record['id'], role_id)
 
+            # Si se proporcionan datos del beneficiario, crearlo.
+            if user_data.beneficiary:
+                await conn.execute(
+                    """
+                    INSERT INTO beneficiaries (user_id, full_name, relationship, phone_number)
+                    VALUES ($1, $2, $3, $4)
+                    """,
+                    new_user_record['id'],
+                    user_data.beneficiary.full_name,
+                    user_data.beneficiary.relationship,
+                    user_data.beneficiary.phone_number
+                )
+
+            # Si se proporcionan datos del asociado, crearlo y vincularlo al usuario
+            if user_data.associate_data:
+                # Generar el nombre del asociado a partir del nombre y apellido del usuario
+                associate_name = f"{user_data.first_name} {user_data.last_name}"
+                new_associate_record = await conn.fetchrow(
+                    """
+                    INSERT INTO associates (name, level_id, contact_person, contact_email, default_commission_rate)
+                    VALUES ($1, $2, $3, $4, $5)
+                    RETURNING id
+                    """,
+                    associate_name,
+                    user_data.associate_data.level_id,
+                    user_data.associate_data.contact_person or f"{user_data.first_name} {user_data.last_name}",
+                    user_data.associate_data.contact_email or user_data.email,
+                    user_data.associate_data.default_commission_rate
+                )
+                # Actualizar el usuario recién creado con el associate_id
+                await conn.execute(
+                    "UPDATE users SET associate_id = $1 WHERE id = $2",
+                    new_associate_record['id'],
+                    new_user_record['id']
+                )
+                # Actualizar el user_dict para que la respuesta incluya el associate_id
+                user_dict['associate_id'] = new_associate_record['id']
+
         except asyncpg.exceptions.UniqueViolationError:
             raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="El nombre de usuario o email ya existe.")
 
-    user_dict = dict(new_user_record)
     user_dict['roles'] = user_data.roles
     return UserResponse.model_validate(user_dict)
 

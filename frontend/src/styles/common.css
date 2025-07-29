@@ -147,3 +147,54 @@ button[type="button"] {
   border-color: var(--color-primary);
   box-shadow: 0 0 0 2px var(--color-primary-light);
 }
+
+/* --- Mensajes de Feedback --- */
+.error-message,
+.success-message {
+  padding: 15px;
+  margin: 1rem 0;
+  border-radius: 6px;
+  border: 1px solid;
+  font-weight: 500;
+}
+
+.error-message {
+  background-color: #f8d7da; /* Rojo pálido */
+  color: #721c24; /* Rojo oscuro */
+  border-color: #f5c6cb; /* Borde rojo */
+}
+
+.success-message {
+  background-color: #d4edda; /* Verde pálido */
+  color: #155724; /* Verde oscuro */
+  border-color: #c3e6cb; /* Borde verde */
+}
+
+.field-error-message {
+  color: #d9534f; /* Un rojo suave */
+  font-size: 0.875rem;
+  margin-top: 5px;
+}
+
+/* --- Sección Desplegable --- */
+.collapsible-section {
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  margin-top: 1.5rem;
+  overflow: hidden; /* Para que el borde redondeado funcione */
+}
+
+.collapsible-header {
+  background-color: var(--color-surface-accent);
+  padding: 12px 15px;
+  width: 100%;
+  text-align: left;
+  font-size: 1rem;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.collapsible-content {
+  padding: 15px;
+  border-top: 1px solid var(--color-border);
+}

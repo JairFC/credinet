@@ -55,7 +55,9 @@ const UsersPage = ({ roleFilter = null, pageTitle = "Gestión de Usuarios" }) =>
       <div className="toolbar">
         <div>
           {canManage && (
-            <Link to="/users/new"><button>+ Crear Nuevo Usuario</button></Link>
+            <Link to={roleFilter === 'cliente' ? '/clients/new' : '/users/new'}>
+              <button>+ Crear Nuevo {roleFilter === 'cliente' ? 'Cliente' : 'Usuario'}</button>
+            </Link>
           )}
         </div>
         <div className="search-input-wrapper">

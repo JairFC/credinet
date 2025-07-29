@@ -1,6 +1,9 @@
-from pydantic import BaseModel, ConfigDict, EmailStr
+from pydantic import BaseModel, ConfigDict, EmailStr, validator
+import re
 from typing import Optional, List
 from datetime import datetime, date
+from app.beneficiaries.schemas import BeneficiaryCreate
+from app.associates.schemas import AssociateCreate # Importar AssociateCreate
 
 class UserBase(BaseModel):
     username: str
@@ -18,10 +21,21 @@ class UserBase(BaseModel):
     address_zip_code: Optional[str] = None
     address_state: Optional[str] = None
 
+    @validator('phone_number')
+    def validate_phone_number(cls, v):
+        # Eliminar todos los caracteres que no sean dígitos
+        digits_only = re.sub(r'\D', '', v)
+        # Validar que el resultado tenga exactamente 10 dígitos
+        if len(digits_only) != 10:
+            raise ValueError('El número de teléfono debe contener 10 dígitos.')
+        return digits_only
+
 class UserCreate(UserBase):
     password: str
     roles: List[str]
     associate_id: Optional[int] = None
+    beneficiary: Optional[BeneficiaryCreate] = None
+    associate_data: Optional[AssociateCreate] = None # Añadir associate_data
 
 class UserUpdate(BaseModel):
     username: Optional[str] = None
