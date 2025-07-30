@@ -5,6 +5,7 @@ from app.auth import routes as auth_routes
 from app.loans import routes as loans_routes
 from app.associates import routes as associates_routes
 from app.beneficiaries import routes as beneficiaries_routes
+from app.utils import routes as utils_routes
 from app.common.database import create_db_pool, close_db_pool
 
 app = FastAPI(
@@ -34,6 +35,7 @@ app.include_router(auth_routes.router, prefix="/api/auth", tags=["Auth & Users"]
 app.include_router(loans_routes.router, prefix="/api/loans", tags=["Loans"])
 app.include_router(associates_routes.router, prefix="/api/associates", tags=["Associates"])
 app.include_router(beneficiaries_routes.router, prefix="/api", tags=["Beneficiaries"])
+app.include_router(utils_routes.router, prefix="/api/utils", tags=["Utilities"])
 
 @app.get("/api/ping")
 def ping():

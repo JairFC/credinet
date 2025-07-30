@@ -16,6 +16,11 @@ services:
     depends_on:
       db:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
     networks:
       - credinet
 
@@ -59,7 +64,7 @@ services:
     container_name: credinet_smoke_tester
     depends_on:
       backend:
-        condition: service_started
+        condition: service_healthy
     command: ["python", "smoke_test.py"]
     environment:
       POSTG-RES_USER: credinet_user
