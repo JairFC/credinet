@@ -1,0 +1,21 @@
+2025-08-03 16:52:34,415,INFO,============================================================
+2025-08-03 16:52:34,416,INFO,  INICIANDO SYSTEM HEALTH CHECK (SH) - CREDINET
+2025-08-03 16:52:34,416,INFO,============================================================
+2025-08-03 16:52:36,419,INFO,[PASS] PING: Verificando conectividad del servidor
+2025-08-03 16:52:36,618,INFO,[PASS] AUTH: Login de Administrador
+2025-08-03 16:52:36,817,INFO,[PASS] AUTH: Login de Asociado
+2025-08-03 16:52:37,016,INFO,[PASS] AUTH: Login de Cliente
+2025-08-03 16:52:37,024,INFO,[PASS] RBAC: Admin puede ver lista de Usuarios
+2025-08-03 16:52:37,028,INFO,[PASS] RBAC: Admin puede ver lista de Asociados
+2025-08-03 16:52:37,045,INFO,[PASS] RBAC: Admin puede ver Dashboard Global
+2025-08-03 16:52:37,048,INFO,[PASS] RBAC: Asociado NO PUEDE ver Usuarios
+2025-08-03 16:52:37,053,INFO,[PASS] RBAC: Asociado puede ver su Dashboard
+2025-08-03 16:52:37,055,INFO,[PASS] RBAC: Cliente NO PUEDE ver Usuarios
+2025-08-03 16:52:37,057,INFO,[PASS] RBAC: Cliente NO PUEDE ver Asociados
+2025-08-03 16:52:37,061,INFO,[PASS] RBAC: Cliente puede ver su Dashboard
+2025-08-03 16:52:37,064,INFO,[PASS] LOGIC: Filtro de Usuarios por teléfono funciona
+2025-08-03 16:52:37,067,INFO,[PASS] LOGIC: Filtro de Asociados por contacto funciona
+2025-08-03 16:52:37,072,INFO,[PASS] LOGIC: Filtro de Préstamos por cliente funciona
+2025-08-03 16:52:37,072,INFO,------------------------------------------------------------
+2025-08-03 16:52:37,072,INFO,[SUCCESS] Todos los 15 chequeos del sistema pasaron.
+2025-08-03 16:52:37,072,INFO,============================================================

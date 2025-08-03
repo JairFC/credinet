@@ -32,22 +32,22 @@ async def authenticate_user(conn: asyncpg.Connection, identifier: str, password:
     query = "SELECT * FROM users WHERE username = $1 OR email = $1 OR phone_number = $1"
     user_record = await conn.fetchrow(query, identifier)
     if not user_record:
-        logger.warning(f"Authentication failed: User '{username}' not found.")
+        logger.warning(f"Authentication failed: User with identifier '{identifier}' not found.")
         return None
     
-    logger.info(f"User '{username}' found. Verifying password.")
+    logger.info(f"User with identifier '{identifier}' found. Verifying password.")
     password_hash_from_db = user_record['password_hash']
     
     try:
         is_password_correct = await asyncio.to_thread(pwd_context.verify, password, password_hash_from_db)
         if not is_password_correct:
-            logger.warning(f"Authentication failed: Incorrect password for user '{username}'.")
+            logger.warning(f"Authentication failed: Incorrect password for user with identifier '{identifier}'.")
             return None
     except Exception as e:
-        logger.error(f"Error during password verification for user '{username}': {e}", exc_info=True)
+        logger.error(f"Error during password verification for user with identifier '{identifier}': {e}", exc_info=True)
         return None
 
-    logger.info(f"Authentication successful for user: {username}")
+    logger.info(f"Authentication successful for user with identifier: {identifier}")
     user_dict = dict(user_record)
     user_dict['roles'] = await get_user_roles(conn, user_dict['id'])
     return UserInDB(**user_dict)

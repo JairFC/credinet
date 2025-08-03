@@ -45,6 +45,9 @@ const CreateClientPage = () => {
   });
   const [coloniaSuggestions, setColoniaSuggestions] = useState([]);
   const [addressError, setAddressError] = useState('');
+  const [isApiDown, setIsApiDown] = useState(false);
+  const [mexicoData, setMexicoData] = useState({ estados: [] }); // Nuevo estado para datos de México
+  const [municipios, setMunicipios] = useState([]); // Nuevo estado para municipios
   const [isBeneficiaryVisible, setIsBeneficiaryVisible] = useState(false);
   const [openSection, setOpenSection] = useState('account');
   const [error, setError] = useState('');
@@ -52,6 +55,14 @@ const CreateClientPage = () => {
   const navigate = useNavigate();
 
   const [formErrors, setFormErrors] = useState({});
+
+  // Cargar datos de estados y municipios al montar
+  useEffect(() => {
+    fetch('/data/estados_municipios.json')
+      .then(response => response.json())
+      .then(data => setMexicoData(data))
+      .catch(error => console.error("Error al cargar datos de México:", error));
+  }, []);
 
   useEffect(() => {
     const {
@@ -80,24 +91,27 @@ const CreateClientPage = () => {
     if (formData.address_zip_code.length === 5) {
       const fetchAddressInfo = async () => {
         setAddressError('');
+        setIsApiDown(false); // Resetea en cada nueva búsqueda
         try {
           const response = await apiClient.get(`/utils/zip-code/${formData.address_zip_code}`);
-          console.log('Respuesta de la API del backend:', response.data);
           const { estado, municipio, colonias } = response.data;
           
           setFormData(prev => ({
             ...prev,
             address_state: estado,
             address_municipality: municipio,
+            address_colonia: '', // Forzar selección
           }));
           setColoniaSuggestions(colonias);
 
         } catch (error) {
-          setAddressError('Código Postal no encontrado o inválido.');
+          setAddressError('Servicio de CP no disponible. Por favor, introduzca los datos manualmente.');
+          setIsApiDown(true); // Activa el modo manual
           setFormData(prev => ({
             ...prev,
             address_state: '',
             address_municipality: '',
+            address_colonia: '',
           }));
           setColoniaSuggestions([]);
         }
@@ -114,6 +128,13 @@ const CreateClientPage = () => {
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
+
+    if (name === "address_state" && isApiDown) {
+      const selectedEstado = mexicoData.estados.find(e => e.nombre === value);
+      setMunicipios(selectedEstado ? selectedEstado.municipios : []);
+      setFormData(prev => ({ ...prev, address_municipality: '' })); // Reset municipio
+    }
+
     if (name === 'phone_number') {
       if (!validatePhoneNumber(value)) {
         setFormErrors(prev => ({...prev, phone_number: 'El teléfono debe tener 10 dígitos.'}));
@@ -157,9 +178,13 @@ const CreateClientPage = () => {
     try {
       const userData = {
         ...formData,
+        last_name: `${formData.paternal_last_name} ${formData.maternal_last_name}`.trim(),
         roles: ['cliente'],
         beneficiary: isBeneficiaryVisible && beneficiaryData.full_name ? beneficiaryData : null,
       };
+      delete userData.paternal_last_name;
+      delete userData.maternal_last_name;
+      delete userData.confirmPassword;
 
       await apiClient.post('/auth/users', userData);
       
@@ -284,20 +309,38 @@ const CreateClientPage = () => {
           </div>
           <div className="form-group">
             <label>Estado</label>
-            <input type="text" name="address_state" value={formData.address_state} readOnly />
+            {isApiDown ? (
+              <select name="address_state" value={formData.address_state} onChange={handleChange} required>
+                <option value="">Seleccione un estado</option>
+                {mexicoData.estados.map(e => <option key={e.nombre} value={e.nombre}>{e.nombre}</option>)}
+              </select>
+            ) : (
+              <input type="text" name="address_state" value={formData.address_state} onChange={handleChange} required readOnly />
+            )}
           </div>
           <div className="form-group">
             <label>Municipio</label>
-            <input type="text" name="address_municipality" value={formData.address_municipality} readOnly />
+            {isApiDown ? (
+              <select name="address_municipality" value={formData.address_municipality} onChange={handleChange} required disabled={!formData.address_state}>
+                <option value="">Seleccione un municipio</option>
+                {municipios.map(m => <option key={m} value={m}>{m}</option>)}
+              </select>
+            ) : (
+              <input type="text" name="address_municipality" value={formData.address_municipality} onChange={handleChange} required readOnly />
+            )}
           </div>
           <div className="form-group">
             <label>Colonia</label>
-            <select name="address_colonia" value={formData.address_colonia} onChange={handleChange} required>
-              <option value="">Seleccione una colonia</option>
-              {coloniaSuggestions.map((colonia, index) => (
-                <option key={index} value={colonia}>{colonia}</option>
-              ))}
-            </select>
+            {isApiDown ? (
+              <input type="text" name="address_colonia" value={formData.address_colonia} onChange={handleChange} required />
+            ) : (
+              <select name="address_colonia" value={formData.address_colonia} onChange={handleChange} required>
+                <option value="">Seleccione una colonia</option>
+                {coloniaSuggestions.map((colonia, index) => (
+                  <option key={index} value={colonia}>{colonia}</option>
+                ))}
+              </select>
+            )}
           </div>
           <div className="form-group">
             <label>Calle</label>

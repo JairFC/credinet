@@ -19,11 +19,15 @@ El formulario está organizado en secciones colapsables para mantener la interfa
 -   **Cómo funciona:** A medida que el usuario completa los campos de `nombre`, `apellidos`, `fecha de nacimiento`, `género` y `estado de nacimiento`, el campo CURP se genera y actualiza automáticamente en tiempo real.
 -   **Tecnología:** La lógica reside en el frontend, dentro del componente `CreateClientPage.jsx`, utilizando una función de utilidad (`generateCurp`).
 
-### 2. Autocompletado de Dirección por Código Postal
+### 2. Autocompletado de Dirección con Fallback Inteligente
 
--   **Cómo funciona:** Cuando el usuario introduce un Código Postal de 5 dígitos, el sistema dispara una llamada a la API del backend (`GET /api/utils/zip-code/{zip_code}`).
--   **Backend:** El backend consulta una API externa (API de Tau) para obtener la información del código postal.
--   **Frontend:** Al recibir la respuesta, el formulario autocompleta los campos de `Estado`, `Municipio` y proporciona una lista desplegable de `Colonias` para que el usuario seleccione la correcta. Esto minimiza errores de captura y agiliza el proceso.
+-   **Flujo Principal:** Cuando el usuario introduce un Código Postal de 5 dígitos, el sistema autocompleta los campos de `Estado`, `Municipio` y proporciona una lista de `Colonias` para seleccionar.
+
+-   **Flujo de Fallback:** Si el servicio de códigos postales falla, el sistema activa un modo de entrada manual mejorado:
+    -   **Estado:** Se convierte en un menú desplegable con todos los estados de México.
+    -   **Municipio:** Se convierte en un menú desplegable que se carga dinámicamente según el estado seleccionado.
+    -   **Colonia:** Se convierte en un campo de texto libre.
+    -   Esta mejora minimiza los errores de captura de datos incluso cuando los servicios externos fallan.
 
 ### 3. Validación de Teléfono
 
