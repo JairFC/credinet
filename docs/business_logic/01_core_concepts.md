@@ -50,10 +50,14 @@ El ecosistema de Credinet gira en torno a cinco entidades interconectadas:
     -   **Justificación:** Este método refleja con mayor precisión cuánto le queda por pagar al cliente según el plan original, incluyendo los intereses futuros.
 -   **Regla 2 (Planes Futuros):** Esta lógica será refinada en el futuro para manejar escenarios más complejos como pagos adelantados, pagos atrasados y reestructuraciones. La lógica actual es la base para la versión inicial.
 
-### 2.3. Ciclo de Vida de un Préstamo
+### 2.4. Flujo de Creación de Entidades (Usuario, Cliente, Asociado)
 
-Un préstamo tiene varios estados (`status`):
--   `pending`: El préstamo ha sido creado pero aún no está activo (fondos no desembolsados).
--   `active`: El préstamo está en curso y se esperan pagos.
--   `paid`: El préstamo ha sido liquidado en su totalidad.
--   `defaulted`: El préstamo ha caído en mora según las políticas de la empresa (lógica específica a definir).
+El sistema ha sido diseñado para permitir la creación de diferentes tipos de entidades (usuarios, clientes, asociados) a través de un único y potente endpoint (`POST /api/auth/users`). Esto centraliza la lógica y simplifica la gestión.
+
+El flujo es el siguiente:
+
+1.  **Datos Base del Usuario:** Se proporcionan los datos fundamentales para cualquier persona en el sistema (`username`, `password`, `first_name`, `last_name`, etc.).
+2.  **Asignación de Roles:** Se especifica una lista de roles (ej. `["cliente"]` o `["asociado"]`). El sistema los asignará en la tabla `user_roles`.
+3.  **Datos Adicionales (Condicional):**
+    -   **Si se crea un `cliente`:** Se pueden incluir opcionalmente los datos de un `beneficiary` en el mismo payload. El sistema creará el registro correspondiente en la tabla `beneficiaries` y lo vinculará al nuevo usuario.
+    -   **Si se crea un `asociado`:** Se deben incluir los `associate_data` (nivel, comisión, etc.). El sistema creará primero la entidad `associates` y luego actualizará el registro del `user` recién creado con el `associate_id` correspondiente. El nombre del asociado se genera automáticamente a partir del nombre y apellido del usuario.

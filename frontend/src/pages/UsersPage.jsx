@@ -4,6 +4,10 @@ import { getUsers } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { debounce } from 'lodash';
 
+// Este componente se reutiliza para mostrar tanto la lista de todos los usuarios como la lista de solo los clientes.
+// El prop `roleFilter` se utiliza para filtrar los usuarios por rol.
+// El prop `pageTitle` se utiliza para establecer el título de la página.
+
 const PaginationControls = ({ page, pages, onPageChange }) => {
   if (pages <= 1) return null;
   return (

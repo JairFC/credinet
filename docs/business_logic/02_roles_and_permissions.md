@@ -1,8 +1,10 @@
 # Roles y Permisos del Sistema
 
-Este documento detalla los roles de usuario en Credinet y los permisos asociados a cada uno, incluyendo el nuevo rol de `cliente`.
+Este documento detalla los roles de usuario en Credinet y los permisos asociados a cada uno, reflejando el modelo actual de múltiples roles por usuario.
 
 ## 1. Resumen de Roles
+
+El sistema utiliza un modelo de roles puro, donde los permisos no están atados a una única columna en la tabla `users`, sino a las relaciones en la tabla `user_roles`. Esto permite que un usuario pueda tener múltiples roles simultáneamente (ej. un `administrador` que también es `cliente`).
 
 | Rol                       | Propósito                                                                    | Acceso Principal                                                                 |
 |---------------------------|------------------------------------------------------------------------------|----------------------------------------------------------------------------------|
@@ -10,7 +12,7 @@ Este documento detalla los roles de usuario en Credinet y los permisos asociados
 | `administrador`           | Gestión completa del negocio. Control casi total.                            | CRUD completo de Asociados, Clientes, Préstamos y Usuarios.                      |
 | `auxiliar_administrativo` | Apoyo al administrador con permisos para crear y editar.                     | Puede crear/editar, pero no eliminar entidades críticas como Asociados o Usuarios. |
 | `asociado`                | Usuario de una empresa asociada para ver su cartera.                         | Acceso de solo lectura a sus préstamos, clientes y comisiones.                   |
-| `cliente`                 | **(Nuevo)** Cliente final que accede para ver sus propios productos.         | Acceso de solo lectura a sus préstamos, historial de pagos y perfil.             |
+| `cliente`                 | Cliente final que accede para ver sus propios productos.         | Acceso de solo lectura a sus préstamos, historial de pagos y perfil.             |
 
 ---
 

@@ -2,6 +2,10 @@
 
 Este directorio es el "cerebro" del proyecto Credinet. Contiene toda la información necesaria para entender, operar y extender el sistema. Está diseñado para ser la **única fuente de verdad** para todos los colaboradores, ya sean humanos o agentes de IA.
 
+## Épica Actual: Modernización de Perfiles de Usuario
+
+Actualmente, la iniciativa principal del proyecto es la **Modernización de Perfiles de Usuario**. Esto implica la fusión de la antigua tabla `clients` en la tabla `users`, la adición de campos de perfil enriquecidos (dirección, CURP), y la implementación de entidades relacionadas como `beneficiaries` y `associate_levels`. Puedes encontrar más detalles sobre el progreso y los próximos pasos en el [Resumen de Sesión](./session_summary.md).
+
 ## ¿Qué Buscas? Guía Rápida
 
 -   **"Quiero entender cómo funciona el negocio (las reglas, los roles, los procesos)."**
@@ -26,3 +30,7 @@ La documentación es código. Cualquier cambio en la funcionalidad o arquitectur
 -   **Cambio en la lógica de negocio:** Actualiza `business_logic/` y crea un `adr/` si la decisión es significativa.
 -   **Cambio en el código (API, DB):** Actualiza `system_architecture/`.
 -   **Añadir una nueva dependencia o cambiar el proceso de setup:** Actualiza `onboarding/`.
+
+## Épica Actual: Refactorización del Sistema de Roles
+
+Actualmente, la iniciativa principal del proyecto es la **Refactorización del Sistema de Roles a un Modelo Puro**. Esto permitirá que los usuarios tengan múltiples roles y mejorará la flexibilidad del sistema de permisos. Puedes encontrar más detalles sobre el progreso y los próximos pasos en el [Resumen de Sesión](./session_summary.md).

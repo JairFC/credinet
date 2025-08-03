@@ -24,12 +24,13 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-async def authenticate_user(conn: asyncpg.Connection, username: str, password: str) -> UserInDB | None:
+async def authenticate_user(conn: asyncpg.Connection, identifier: str, password: str) -> UserInDB | None:
     """
-    Busca un usuario, verifica su contraseña y devuelve sus datos, incluida la lista de roles.
+    Busca un usuario por username, email o phone_number, verifica su contraseña y devuelve sus datos.
     """
-    logger.info(f"Attempting to authenticate user: {username}")
-    user_record = await conn.fetchrow("SELECT * FROM users WHERE username = $1", username)
+    logger.info(f"Attempting to authenticate user with identifier: {identifier}")
+    query = "SELECT * FROM users WHERE username = $1 OR email = $1 OR phone_number = $1"
+    user_record = await conn.fetchrow(query, identifier)
     if not user_record:
         logger.warning(f"Authentication failed: User '{username}' not found.")
         return None
