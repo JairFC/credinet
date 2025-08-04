@@ -80,8 +80,14 @@ async def register_user(
                 # Actualizar el user_dict para que la respuesta incluya el associate_id
                 user_dict['associate_id'] = new_associate_record['id']
 
-        except asyncpg.exceptions.UniqueViolationError:
-            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="El nombre de usuario o email ya existe.")
+        except asyncpg.exceptions.UniqueViolationError as e:
+            if 'users_username_key' in e.constraint_name:
+                raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="El nombre de usuario ya existe.")
+            if 'users_email_key' in e.constraint_name:
+                raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="El email ya está registrado.")
+            if 'users_curp_key' in e.constraint_name:
+                raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="La CURP ya está registrada.")
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=f"Error de unicidad no manejado: {e.constraint_name}")
 
     user_dict['roles'] = user_data.roles
     return UserResponse.model_validate(user_dict)

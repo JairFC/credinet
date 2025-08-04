@@ -1,9 +1,23 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 import httpx
+import asyncpg
+from app.common.database import get_db
 
 router = APIRouter()
 
 ZIP_CODE_API_URL = "https://api.tau.com.mx/dipomex/v1/codigo_postal"
+
+@router.get("/check-curp/{curp}", summary="Verificar si una CURP ya existe")
+async def check_curp_exists(curp: str, conn: asyncpg.Connection = Depends(get_db)):
+    """
+    Verifica si una CURP ya está registrada en la base de datos.
+    """
+    if not curp or len(curp) != 18:
+        raise HTTPException(status_code=400, detail="La CURP debe tener 18 caracteres.")
+    
+    record = await conn.fetchrow("SELECT id FROM users WHERE curp = $1", curp.upper())
+    
+    return {"exists": record is not None}
 
 @router.get("/zip-code/{zip_code}", summary="Consultar información de un código postal")
 async def get_zip_code_info(zip_code: str):

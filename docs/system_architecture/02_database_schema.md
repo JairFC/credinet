@@ -68,7 +68,7 @@ Contiene la información de los préstamos.
 - `amount`: NUMERIC(10, 2) NOT NULL
 - `interest_rate`: NUMERIC(5, 2) NOT NULL
 - `commission_rate`: NUMERIC(5, 2) NOT NULL
-- `term_months`: FLOAT NOT NULL
+- `term_months`: NUMERIC(5, 2) NOT NULL
 - `payment_frequency`: VARCHAR(10) NOT NULL
 - `status`: VARCHAR(20) NOT NULL DEFAULT 'pending'
 - `updated_at`: TIMESTAMPTZ

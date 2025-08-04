@@ -1,21 +1,22 @@
 # ADR-002: Endpoint para Obtener Clientes
 
-**Estado:** Propuesto
+**Estado:** Aceptado
 
 **Contexto:**
 
-La página de creación de préstamos (`CreateLoanPage.jsx`) necesita mostrar una lista de clientes para que el usuario pueda seleccionar a quién se le otorgará el préstamo. Actualmente, la página obtiene todos los usuarios del sistema y los filtra en el frontend para mostrar solo aquellos con el rol de "cliente".
-
-Este enfoque es ineficiente y puede causar problemas de rendimiento a medida que aumenta el número de usuarios en el sistema.
+La página de creación de préstamos (`CreateLoanPage.jsx`) y la vista de "Gestión de Clientes" (`ClientsViewPage.jsx`) necesitan una forma eficiente de obtener solo a los usuarios que tienen el rol de "cliente". El enfoque inicial de obtener todos los usuarios y filtrarlos en el frontend es ineficiente y no escala.
 
 **Decisión:**
 
-Se propone crear un nuevo endpoint en el backend (`/api/auth/users/clients`) que devuelva una lista de todos los usuarios con el rol de "cliente".
+Se ha decidido modificar el endpoint existente `GET /api/auth/users` para que acepte un parámetro de consulta opcional `role`. De esta manera, en lugar de crear un endpoint nuevo y específico, se reutiliza el existente para filtrar por rol cuando sea necesario.
+
+La llamada a la API para obtener solo clientes es: `GET /api/auth/users?role=cliente`.
 
 **Consecuencias:**
 
 *   **Ventajas:**
-    *   Mejora la eficiencia de la página de creación de préstamos al reducir la cantidad de datos transferidos entre el frontend y el backend.
-    *   Simplifica el código del frontend al eliminar la necesidad de filtrar la lista de usuarios.
+    *   Mejora drásticamente la eficiencia al delegar el filtrado a la base de datos, reduciendo la carga en el frontend y la cantidad de datos transferidos.
+    *   Mantiene la superficie de la API limpia y cohesiva al no añadir un nuevo endpoint, siguiendo el principio de reutilización.
+    *   Simplifica el código del frontend, que ahora solo necesita pasar un parámetro en lugar de implementar lógica de filtrado.
 *   **Desventajas:**
-    *   Añade un nuevo endpoint al backend, lo que aumenta ligeramente la superficie de la API.
+    *   Ninguna significativa. Este enfoque es superior a la propuesta original.

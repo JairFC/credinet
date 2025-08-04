@@ -8,7 +8,7 @@ El ecosistema de Credinet gira en torno a cinco entidades interconectadas:
 
 1.  **Usuario (`User`):**
     -   **Definición:** Cualquier individuo con credenciales para acceder al sistema.
-    -   **Propósito:** La autenticación y la autorización se basan en los usuarios. Cada usuario tiene asignado un único rol.
+    -   **Propósito:** La autenticación y la autorización se basan en los usuarios. Un usuario puede tener asignados uno o más roles, lo que le otorga un conjunto de permisos específicos.
 
 2.  **Asociado (`Associate`):**
     -   **Definición:** Una entidad de negocio externa (empresa o individuo) que origina préstamos.

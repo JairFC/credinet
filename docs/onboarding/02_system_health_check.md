@@ -26,29 +26,34 @@ Puedes monitorear el SH de dos maneras:
 El SH está estructurado en secciones lógicas para facilitar su entendimiento y expansión.
 
 ### Sección 1: Conectividad
--   **[1/12] PING:** Verifica que el servidor backend esté en línea y respondiendo en `/api/ping`.
+-   **[1/15] PING:** Verifica que el servidor backend esté en línea y respondiendo en `/api/ping`.
 
 ### Sección 2: Autenticación (AUTH)
--   **[2/12] Login Admin:** Confirma que el usuario `admin` puede autenticarse y recibir un token.
--   **[3/12] Login Asociado:** Confirma que el usuario `asociado_test` puede autenticarse.
--   **[4/12] Login Cliente:** Confirma que la usuaria `sofia.vargas` puede autenticarse.
+-   **[2/15] Login Admin:** Confirma que el usuario `admin` puede autenticarse y recibir un token.
+-   **[3/15] Login Asociado:** Confirma que el usuario `asociado_test` puede autenticarse.
+-   **[4/15] Login Cliente:** Confirma que la usuaria `sofia.vargas` puede autenticarse.
 
 ### Sección 3: Control de Acceso Basado en Roles (RBAC)
 Esta es la sección más crítica. Verifica que cada rol tenga los permisos correctos y, más importante, que **no tenga** permisos que no le corresponden.
 
 -   **Permisos de Administrador:**
-    -   **[5/12]** Puede acceder a la lista de usuarios (`/api/users`).
-    -   **[6/12]** Puede acceder a la lista de asociados (`/api/associates/`).
-    -   **[7/12]** Puede acceder al dashboard global (`/api/loans/summary`).
+    -   **[5/15]** Puede acceder a la lista de usuarios (`/api/auth/users`).
+    -   **[6/15]** Puede acceder a la lista de asociados (`/api/associates/`).
+    -   **[7/15]** Puede acceder al dashboard global (`/api/loans/summary`).
 
 -   **Permisos de Asociado:**
-    -   **[8/12]** **NO PUEDE** acceder a la lista de usuarios.
-    -   **[9/12]** Puede acceder a su propio dashboard (`/api/associates/dashboard`).
+    -   **[8/15]** **NO PUEDE** acceder a la lista de usuarios.
+    -   **[9/15]** Puede acceder a su propio dashboard (`/api/associates/dashboard`).
 
 -   **Permisos de Cliente:**
-    -   **[10/12]** **NO PUEDE** acceder a la lista de usuarios.
-    -   **[11/12]** **NO PUEDE** acceder a la lista de asociados.
-    -   **[12/12]** Puede acceder a su propio dashboard (`/api/auth/me/dashboard`).
+    -   **[10/15]** **NO PUEDE** acceder a la lista de usuarios.
+    -   **[11/15]** **NO PUEDE** acceder a la lista de asociados.
+    -   **[12/15]** Puede acceder a su propio dashboard (`/api/auth/me/dashboard`).
+
+### Sección 4: Lógica de Negocio (Filtros)
+-   **[13/15] LOGIC: Filtro de Usuarios:** Verifica que el filtro de búsqueda en la lista de usuarios funcione correctamente.
+-   **[14/15] LOGIC: Filtro de Asociados:** Verifica que el filtro de búsqueda en la lista de asociados funcione correctamente.
+-   **[15/15] LOGIC: Filtro de Préstamos:** Verifica que el filtro de búsqueda en la lista de préstamos funcione correctamente.
 
 ## Protocolo de Uso
 

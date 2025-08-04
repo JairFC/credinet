@@ -39,7 +39,9 @@ Este tablero utiliza el formato Kanban en Markdown para rastrear el progreso de 
 
 ## En Progreso (In Progress)
 
--   *Actualmente no hay tareas en progreso.*
+### Épica: Mejoras de Calidad de Datos y UX
+
+-   **[FEATURE - CURP VALIDATION]:** Implementar flujo de validación de CURP único en el alta de clientes, con verificación en tiempo real y modal de confirmación/corrección.
 
 ---
 

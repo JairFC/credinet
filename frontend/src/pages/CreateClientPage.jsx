@@ -1,62 +1,161 @@
 
 import React, { useState, useEffect } from 'react';
+import ReactDOM from 'react-dom';
 import { Link, useNavigate } from 'react-router-dom';
 import apiClient from '../services/api';
 import { generateCurp } from '../utils/curp_generator';
 
-const CollapsibleSection = ({ title, sectionKey, children, isOpen, onClick }) => (
+// --- Sub-Components ---
+
+const CollapsibleSection = ({ title, children, isOpen, onClick }) => (
   <div className="collapsible-section">
     <button type="button" onClick={onClick} className="collapsible-header">
       {title} {isOpen ? '▲' : '▼'}
     </button>
-    {isOpen && (
-      <div className="collapsible-content">
-        {children}
-      </div>
-    )}
+    {isOpen && <div className="collapsible-content">{children}</div>}
   </div>
 );
 
+// Estilos definidos como objetos de JavaScript para garantizar que no haya conflictos
+const modalStyles = {
+  backdrop: {
+    position: 'fixed',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.75)',
+    display: 'flex',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 1000,
+  },
+  content: {
+    background: '#2a2a2a',
+    color: 'rgba(255, 255, 255, 0.9)',
+    padding: '30px',
+    borderRadius: '8px',
+    width: '90%',
+    maxWidth: '500px',
+    boxShadow: '0 5px 20px rgba(0,0,0,0.4)',
+    border: '1px solid #444',
+  },
+  actions: {
+    display: 'flex',
+    justifyContent: 'flex-end',
+    gap: '15px',
+    marginTop: '25px',
+  }
+};
+
+const CurpModal = ({ modalState, onConfirm, onCancel, onCurpChange, onCloseResult }) => {
+  if (!modalState.isOpen) return null;
+
+  return ReactDOM.createPortal(
+    <div style={modalStyles.backdrop}>
+      <div style={modalStyles.content}>
+        {modalState.step === 'confirm' && (
+          <>
+            <h2>Verificar CURP</h2>
+            <p>Por favor, confirma la CURP generada. Si es necesario, corrige la homoclave (los dos últimos caracteres).</p>
+            <input 
+              type="text" 
+              value={modalState.curp} 
+              onChange={onCurpChange}
+              maxLength="18"
+              className="form-control"
+              style={{ textTransform: 'uppercase' }}
+            />
+            <div style={modalStyles.actions}>
+              <button onClick={onConfirm}>Confirmar y Verificar</button>
+              <button onClick={onCancel} type="button">Cancelar</button>
+            </div>
+          </>
+        )}
+        {modalState.step === 'loading' && (
+          <>
+            <h2>Verificando...</h2>
+            <p>Por favor, espera un momento.</p>
+          </>
+        )}
+        {modalState.step === 'result' && (
+          <>
+            <h2 style={{ marginTop: 0 }}>
+              {modalState.result.type === 'success' ? '✅ Verificación Exitosa' : '❌ Error de Verificación'}
+            </h2>
+            <p style={{ fontSize: '1.1rem' }}>{modalState.result.message}</p>
+            <div style={modalStyles.actions}>
+              <button onClick={onCloseResult}>Entendido</button>
+            </div>
+          </>
+        )}
+      </div>
+    </div>,
+    document.getElementById('modal-root')
+  );
+};
+
+
+// --- Main Page Component ---
+
 const CreateClientPage = () => {
+  // --- State Management ---
   const [formData, setFormData] = useState({
-    username: '',
-    password: '',
-    confirmPassword: '',
-    first_name: '',
-    paternal_last_name: '',
-    maternal_last_name: '',
-    email: '',
-    phone_number: '',
-    birth_date: '',
-    gender: 'HOMBRE',
-    state_of_birth: 'CHIHUAHUA',
-    curp: '',
-    address_zip_code: '',
-    address_state: '',
-    address_municipality: '',
-    address_colonia: '',
-    address_street: '',
-    address_ext_num: ''
+    username: '', password: '', confirmPassword: '',
+    first_name: '', paternal_last_name: '', maternal_last_name: '',
+    email: '', phone_number: '', birth_date: '',
+    gender: 'HOMBRE', state_of_birth: 'CHIHUAHUA', curp: '',
+    address_zip_code: '', address_state: '', address_municipality: '',
+    address_colonia: '', address_street: '', address_ext_num: ''
   });
-  const [beneficiaryData, setBeneficiaryData] = useState({
-    full_name: '',
-    relationship: '',
-    phone_number: '',
-  });
+  const [beneficiaryData, setBeneficiaryData] = useState({ full_name: '', relationship: '', phone_number: '' });
+  const [formErrors, setFormErrors] = useState({});
+  
+  // CURP validation state
+  const [isCurpVerified, setIsCurpVerified] = useState(false);
+  const [modalState, setModalState] = useState({ isOpen: false, step: 'confirm', curp: '', result: { message: '', type: '' } });
+
+  // Address state
   const [coloniaSuggestions, setColoniaSuggestions] = useState([]);
   const [addressError, setAddressError] = useState('');
   const [isApiDown, setIsApiDown] = useState(false);
-  const [mexicoData, setMexicoData] = useState({ estados: [] }); // Nuevo estado para datos de México
-  const [municipios, setMunicipios] = useState([]); // Nuevo estado para municipios
-  const [isBeneficiaryVisible, setIsBeneficiaryVisible] = useState(false);
-  const [openSection, setOpenSection] = useState('account');
+  const [mexicoData, setMexicoData] = useState({ estados: [] });
+  const [municipios, setMunicipios] = useState([]);
+
+  // UI and Navigation state
+  const [openSection, setOpenSection] = useState('personal');
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const navigate = useNavigate();
 
-  const [formErrors, setFormErrors] = useState({});
+  // --- Form Validation ---
+  const validateField = (name, value) => {
+    let errorMsg = '';
+    switch (name) {
+      case 'username':
+        if (value.length > 0 && value.length < 4) errorMsg = 'Debe tener al menos 4 caracteres.';
+        break;
+      case 'password':
+        if (value.length > 0 && value.length < 8) errorMsg = 'Debe tener al menos 8 caracteres.';
+        break;
+      case 'confirmPassword':
+        if (value !== formData.password) errorMsg = 'Las contraseñas no coinciden.';
+        break;
+      case 'phone_number':
+        if (value.length > 0 && !/^\d{10}$/.test(value)) errorMsg = 'Debe ser un número de 10 dígitos.';
+        break;
+    }
+    setFormErrors(prev => ({ ...prev, [name]: errorMsg }));
+  };
 
-  // Cargar datos de estados y municipios al montar
+  const isFormValid = () => {
+    const requiredFields = ['username', 'password', 'first_name', 'paternal_last_name', 'phone_number'];
+    const hasNoErrors = Object.values(formErrors).every(err => !err);
+    const allRequiredFilled = requiredFields.every(field => formData[field]);
+    return hasNoErrors && allRequiredFilled && isCurpVerified;
+  };
+
+  // --- Data Fetching and Effects ---
   useEffect(() => {
     fetch('/data/estados_municipios.json')
       .then(response => response.json())
@@ -65,25 +164,11 @@ const CreateClientPage = () => {
   }, []);
 
   useEffect(() => {
-    const {
-      first_name,
-      paternal_last_name,
-      maternal_last_name,
-      birth_date,
-      gender,
-      state_of_birth,
-    } = formData;
-
+    const { first_name, paternal_last_name, maternal_last_name, birth_date, gender, state_of_birth } = formData;
     if (first_name && paternal_last_name && birth_date && gender && state_of_birth) {
-      const curp = generateCurp({
-        nombre: first_name,
-        apellidoPaterno: paternal_last_name,
-        apellidoMaterno: maternal_last_name,
-        fechaNacimiento: birth_date,
-        sexo: gender,
-        estadoNacimiento: state_of_birth,
-      });
+      const curp = generateCurp({ nombre: first_name, apellidoPaterno: paternal_last_name, apellidoMaterno: maternal_last_name, fechaNacimiento: birth_date, sexo: gender, estadoNacimiento: state_of_birth });
       setFormData(prev => ({ ...prev, curp }));
+      setIsCurpVerified(false);
     }
   }, [formData.first_name, formData.paternal_last_name, formData.maternal_last_name, formData.birth_date, formData.gender, formData.state_of_birth]);
 
@@ -91,28 +176,16 @@ const CreateClientPage = () => {
     if (formData.address_zip_code.length === 5) {
       const fetchAddressInfo = async () => {
         setAddressError('');
-        setIsApiDown(false); // Resetea en cada nueva búsqueda
+        setIsApiDown(false);
         try {
           const response = await apiClient.get(`/utils/zip-code/${formData.address_zip_code}`);
           const { estado, municipio, colonias } = response.data;
-          
-          setFormData(prev => ({
-            ...prev,
-            address_state: estado,
-            address_municipality: municipio,
-            address_colonia: '', // Forzar selección
-          }));
+          setFormData(prev => ({ ...prev, address_state: estado, address_municipality: municipio, address_colonia: '' }));
           setColoniaSuggestions(colonias);
-
         } catch (error) {
           setAddressError('Servicio de CP no disponible. Por favor, introduzca los datos manualmente.');
-          setIsApiDown(true); // Activa el modo manual
-          setFormData(prev => ({
-            ...prev,
-            address_state: '',
-            address_municipality: '',
-            address_colonia: '',
-          }));
+          setIsApiDown(true);
+          setFormData(prev => ({ ...prev, address_state: '', address_municipality: '', address_colonia: '' }));
           setColoniaSuggestions([]);
         }
       };
@@ -120,114 +193,116 @@ const CreateClientPage = () => {
     }
   }, [formData.address_zip_code]);
 
-  const validatePhoneNumber = (number) => {
-    const digits_only = number.replace(/\D/g, '');
-    return digits_only.length === 10;
-  }
-
+  // --- Event Handlers ---
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
-
+    validateField(name, value);
     if (name === "address_state" && isApiDown) {
       const selectedEstado = mexicoData.estados.find(e => e.nombre === value);
       setMunicipios(selectedEstado ? selectedEstado.municipios : []);
-      setFormData(prev => ({ ...prev, address_municipality: '' })); // Reset municipio
-    }
-
-    if (name === 'phone_number') {
-      if (!validatePhoneNumber(value)) {
-        setFormErrors(prev => ({...prev, phone_number: 'El teléfono debe tener 10 dígitos.'}));
-      } else {
-        setFormErrors(prev => ({...prev, phone_number: ''}));
-      }
+      setFormData(prev => ({ ...prev, address_municipality: '' }));
     }
   };
-
+  
   const handleBeneficiaryChange = (e) => {
     const { name, value } = e.target;
     setBeneficiaryData(prev => ({ ...prev, [name]: value }));
-    if (name === 'phone_number') {
-      if (value && !validatePhoneNumber(value)) {
-        setFormErrors(prev => ({...prev, beneficiary_phone: 'El teléfono del beneficiario debe tener 10 dígitos.'}));
+  };
+
+  const handleCurpChange = (e) => {
+    const newCurp = e.target.value.toUpperCase();
+    setFormData(prev => ({ ...prev, curp: newCurp }));
+    setIsCurpVerified(false);
+  };
+
+  const handleVerifyClick = () => {
+    setModalState({ isOpen: true, step: 'confirm', curp: formData.curp, result: { message: '', type: '' } });
+  };
+
+  const handleModalCurpChange = (e) => {
+    setModalState(prev => ({ ...prev, curp: e.target.value.toUpperCase() }));
+  };
+
+  const handleCancelModal = () => {
+    setModalState({ isOpen: false, step: 'confirm', curp: '', result: { message: '', type: '' } });
+  };
+
+  const handleConfirmCurp = async () => {
+    setModalState(prev => ({ ...prev, step: 'loading' }));
+    setFormData(prev => ({ ...prev, curp: modalState.curp }));
+    
+    let result = { message: '', type: '' };
+    try {
+      const response = await apiClient.get(`/utils/check-curp/${modalState.curp}`);
+      if (response.data.exists) {
+        result = { message: 'Esta CURP ya está registrada en el sistema.', type: 'error' };
+        setIsCurpVerified(false);
       } else {
-        setFormErrors(prev => ({...prev, beneficiary_phone: ''}));
+        result = { message: 'La CURP está disponible y ha sido validada.', type: 'success' };
+        setIsCurpVerified(true);
       }
+    } catch (err) {
+      result = { message: 'No se pudo verificar la CURP en este momento. Intente más tarde.', type: 'error' };
+      setIsCurpVerified(false);
+    }
+    setModalState(prev => ({ ...prev, step: 'result', result }));
+  };
+
+  const handleCloseResultModal = () => {
+    const isSuccess = modalState.result.type === 'success';
+    setModalState({ isOpen: false, step: 'confirm', curp: '', result: { message: '', type: '' } });
+    if (isSuccess) {
+      setOpenSection('account'); // Move to the next section
     }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!isFormValid()) {
+      setError("Por favor, complete todos los campos obligatorios (*) y verifique que la CURP esté disponible.");
+      return;
+    }
     setError('');
     setSuccess('');
-
-    // Re-validar todo antes de enviar
-    if (!validatePhoneNumber(formData.phone_number)) {
-      setError('El formato del número de teléfono del cliente es incorrecto.');
-      return;
-    }
-    if (isBeneficiaryVisible && beneficiaryData.full_name && !validatePhoneNumber(beneficiaryData.phone_number)) {
-      setError('El formato del número de teléfono del beneficiario es incorrecto.');
-      return;
-    }
-    if (formData.password !== formData.confirmPassword) {
-      setError('Las contraseñas no coinciden.');
-      return;
-    }
 
     try {
       const userData = {
         ...formData,
         last_name: `${formData.paternal_last_name} ${formData.maternal_last_name}`.trim(),
         roles: ['cliente'],
-        beneficiary: isBeneficiaryVisible && beneficiaryData.full_name ? beneficiaryData : null,
+        email: formData.email || null,
+        beneficiary: beneficiaryData.full_name ? beneficiaryData : null,
       };
       delete userData.paternal_last_name;
       delete userData.maternal_last_name;
       delete userData.confirmPassword;
 
       await apiClient.post('/auth/users', userData);
-      
-      setSuccess('¡Cliente registrado con éxito! Redirigiendo a la lista de clientes...');
-      setTimeout(() => {
-        navigate('/clients');
-      }, 2000);
-
+      setSuccess('¡Cliente registrado con éxito! Redirigiendo...');
+      setTimeout(() => navigate('/clients'), 2000);
     } catch (err) {
-      const errorMessage = err.response?.data?.detail || 'Ocurrió un error inesperado al crear el cliente.';
-      setError(errorMessage);
-      console.error('Error en el registro de cliente:', err.response);
+      setError(err.response?.data?.detail || 'Ocurrió un error inesperado.');
     }
   };
 
+  // --- Render --- 
   return (
     <div className="clients-page">
+      <CurpModal modalState={modalState} onConfirm={handleConfirmCurp} onCancel={handleCancelModal} onCurpChange={handleModalCurpChange} onCloseResult={handleCloseResultModal} />
+      
       <Link to="/clients" className="back-link">← Volver a Clientes</Link>
       <h1>Crear Nuevo Cliente</h1>
+      <p>Los campos marcados con * son obligatorios.</p>
+
       <form onSubmit={handleSubmit} className="user-form">
-
-        <CollapsibleSection title="Datos de la Cuenta" sectionKey="account" isOpen={openSection === 'account'} onClick={() => setOpenSection(openSection === 'account' ? null : 'account')}>
+        <CollapsibleSection title="1. Datos Personales y de Identificación" isOpen={openSection === 'personal'} onClick={() => setOpenSection('personal')}>
           <div className="form-group">
-            <label>Nombre de Usuario</label>
-            <input type="text" name="username" value={formData.username} onChange={handleChange} required />
-          </div>
-          <div className="form-group">
-            <label>Contraseña</label>
-            <input type="password" name="password" value={formData.password} onChange={handleChange} required />
-          </div>
-          <div className="form-group">
-            <label>Confirmar Contraseña</label>
-            <input type="password" name="confirmPassword" value={formData.confirmPassword} onChange={handleChange} required />
-          </div>
-        </CollapsibleSection>
-
-        <CollapsibleSection title="Datos Personales" sectionKey="personal" isOpen={openSection === 'personal'} onClick={() => setOpenSection(openSection === 'personal' ? null : 'personal')}>
-          <div className="form-group">
-            <label>Nombre(s)</label>
+            <label>Nombre(s) *</label>
             <input type="text" name="first_name" value={formData.first_name} onChange={handleChange} required />
           </div>
           <div className="form-group">
-            <label>Apellido Paterno</label>
+            <label>Apellido Paterno *</label>
             <input type="text" name="paternal_last_name" value={formData.paternal_last_name} onChange={handleChange} required />
           </div>
           <div className="form-group">
@@ -236,18 +311,18 @@ const CreateClientPage = () => {
           </div>
           <div className="form-group">
             <label>Fecha de Nacimiento</label>
-            <input type="date" name="birth_date" value={formData.birth_date} onChange={handleChange} required />
+            <input type="date" name="birth_date" value={formData.birth_date} onChange={handleChange} />
           </div>
           <div className="form-group">
             <label>Género</label>
-            <select name="gender" value={formData.gender} onChange={handleChange} required>
+            <select name="gender" value={formData.gender} onChange={handleChange}>
               <option value="HOMBRE">Hombre</option>
               <option value="MUJER">Mujer</option>
             </select>
           </div>
           <div className="form-group">
             <label>Estado de Nacimiento</label>
-            <select name="state_of_birth" value={formData.state_of_birth} onChange={handleChange} required>
+            <select name="state_of_birth" value={formData.state_of_birth} onChange={handleChange}>
                 <option value="AGUASCALIENTES">AGUASCALIENTES</option>
                 <option value="BAJA CALIFORNIA">BAJA CALIFORNIA</option>
                 <option value="BAJA CALIFORNIA SUR">BAJA CALIFORNIA SUR</option>
@@ -284,95 +359,111 @@ const CreateClientPage = () => {
             </select>
           </div>
           <div className="form-group">
-            <label>CURP</label>
-            <input type="text" name="curp" value={formData.curp} readOnly />
+            <label>CURP *</label>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <input type="text" name="curp" value={formData.curp} onChange={handleCurpChange} maxLength="18" style={{ textTransform: 'uppercase' }} required />
+              <button type="button" onClick={handleVerifyClick} disabled={formData.curp.length !== 18}>Verificar</button>
+            </div>
+            {isCurpVerified && <span style={{color: '#51cf66', fontSize: '0.9em', fontWeight: 'bold', marginTop: '8px'}}>✅ CURP validada</span>}
           </div>
         </CollapsibleSection>
 
-        <CollapsibleSection title="Datos de Contacto" sectionKey="contact" isOpen={openSection === 'contact'} onClick={() => setOpenSection(openSection === 'contact' ? null : 'contact')}>
+        <CollapsibleSection title="2. Datos de la Cuenta y Contacto" isOpen={openSection === 'account'} onClick={() => setOpenSection('account')}>
           <div className="form-group">
-            <label>Email</label>
-            <input type="email" name="email" value={formData.email} onChange={handleChange} required />
+            <label>Nombre de Usuario *</label>
+            <input type="text" name="username" value={formData.username} onChange={handleChange} required />
+            {formErrors.username && <span className="field-error-message">{formErrors.username}</span>}
           </div>
           <div className="form-group">
-            <label>Teléfono</label>
+            <label>Contraseña *</label>
+            <input type="password" name="password" value={formData.password} onChange={handleChange} required />
+            {formErrors.password && <span className="field-error-message">{formErrors.password}</span>}
+          </div>
+          <div className="form-group">
+            <label>Confirmar Contraseña *</label>
+            <input type="password" name="confirmPassword" value={formData.confirmPassword} onChange={handleChange} required />
+            {formErrors.confirmPassword && <span className="field-error-message">{formErrors.confirmPassword}</span>}
+          </div>
+          <div className="form-group">
+            <label>Teléfono *</label>
             <input type="text" name="phone_number" value={formData.phone_number} onChange={handleChange} required />
             {formErrors.phone_number && <span className="field-error-message">{formErrors.phone_number}</span>}
           </div>
+          <div className="form-group">
+            <label>Email</label>
+            <input type="email" name="email" value={formData.email} onChange={handleChange} />
+          </div>
         </CollapsibleSection>
 
-        <CollapsibleSection title="Dirección" sectionKey="address" isOpen={openSection === 'address'} onClick={() => setOpenSection(openSection === 'address' ? null : 'address')}>
+        <CollapsibleSection title="3. Dirección" isOpen={openSection === 'address'} onClick={() => setOpenSection('address')}>
           <div className="form-group">
             <label>Código Postal</label>
-            <input type="text" name="address_zip_code" value={formData.address_zip_code} onChange={handleChange} maxLength="5" required />
+            <input type="text" name="address_zip_code" value={formData.address_zip_code} onChange={handleChange} maxLength="5" />
             {addressError && <span className="field-error-message">{addressError}</span>}
           </div>
           <div className="form-group">
             <label>Estado</label>
             {isApiDown ? (
-              <select name="address_state" value={formData.address_state} onChange={handleChange} required>
+              <select name="address_state" value={formData.address_state} onChange={handleChange}>
                 <option value="">Seleccione un estado</option>
-                {mexicoData.estados.map(e => <option key={e.nombre} value={e.nombre}>{e.nombre}</option>)}
+                {mexicoData.estados.map(e => <option key={e.nombre} value={e.nombre}>{e.nombre}</option>)} 
               </select>
             ) : (
-              <input type="text" name="address_state" value={formData.address_state} onChange={handleChange} required readOnly />
+              <input type="text" name="address_state" value={formData.address_state} readOnly />
             )}
           </div>
           <div className="form-group">
             <label>Municipio</label>
             {isApiDown ? (
-              <select name="address_municipality" value={formData.address_municipality} onChange={handleChange} required disabled={!formData.address_state}>
+              <select name="address_municipality" value={formData.address_municipality} onChange={handleChange} disabled={!formData.address_state}>
                 <option value="">Seleccione un municipio</option>
-                {municipios.map(m => <option key={m} value={m}>{m}</option>)}
+                {municipios.map(m => <option key={m} value={m}>{m}</option>)} 
               </select>
             ) : (
-              <input type="text" name="address_municipality" value={formData.address_municipality} onChange={handleChange} required readOnly />
+              <input type="text" name="address_municipality" value={formData.address_municipality} readOnly />
             )}
           </div>
           <div className="form-group">
             <label>Colonia</label>
             {isApiDown ? (
-              <input type="text" name="address_colonia" value={formData.address_colonia} onChange={handleChange} required />
+              <input type="text" name="address_colonia" value={formData.address_colonia} onChange={handleChange} />
             ) : (
-              <select name="address_colonia" value={formData.address_colonia} onChange={handleChange} required>
+              <select name="address_colonia" value={formData.address_colonia} onChange={handleChange}>
                 <option value="">Seleccione una colonia</option>
-                {coloniaSuggestions.map((colonia, index) => (
-                  <option key={index} value={colonia}>{colonia}</option>
-                ))}
+                {coloniaSuggestions.map((colonia, index) => <option key={index} value={colonia}>{colonia}</option>)} 
               </select>
             )}
           </div>
           <div className="form-group">
             <label>Calle</label>
-            <input type="text" name="address_street" value={formData.address_street} onChange={handleChange} required />
+            <input type="text" name="address_street" value={formData.address_street} onChange={handleChange} />
           </div>
           <div className="form-group">
             <label>Número Exterior</label>
-            <input type="text" name="address_ext_num" value={formData.address_ext_num} onChange={handleChange} required />
+            <input type="text" name="address_ext_num" value={formData.address_ext_num} onChange={handleChange} />
           </div>
         </CollapsibleSection>
 
-        <CollapsibleSection title="Beneficiario (Opcional)" sectionKey="beneficiary" isOpen={openSection === 'beneficiary'} onClick={() => setOpenSection(openSection === 'beneficiary' ? null : 'beneficiary')}>
-            <div className="form-group">
-              <label>Nombre Completo del Beneficiario</label>
-              <input type="text" name="full_name" value={beneficiaryData.full_name} onChange={handleBeneficiaryChange} />
-            </div>
-            <div className="form-group">
-              <label>Parentesco</label>
-              <input type="text" name="relationship" value={beneficiaryData.relationship} onChange={handleBeneficiaryChange} />
-            </div>
-            <div className="form-group">
-              <label>Teléfono del Beneficiario</label>
-              <input type="text" name="phone_number" value={beneficiaryData.phone_number} onChange={handleBeneficiaryChange} />
-              {formErrors.beneficiary_phone && <span className="field-error-message">{formErrors.beneficiary_phone}</span>}
-            </div>
+        <CollapsibleSection title="4. Beneficiario (Opcional)" isOpen={openSection === 'beneficiary'} onClick={() => setOpenSection('beneficiary')}>
+          <div className="form-group">
+            <label>Nombre Completo del Beneficiario</label>
+            <input type="text" name="full_name" value={beneficiaryData.full_name} onChange={handleBeneficiaryChange} />
+          </div>
+          <div className="form-group">
+            <label>Parentesco</label>
+            <input type="text" name="relationship" value={beneficiaryData.relationship} onChange={handleBeneficiaryChange} />
+          </div>
+          <div className="form-group">
+            <label>Teléfono del Beneficiario</label>
+            <input type="text" name="phone_number" value={beneficiaryData.phone_number} onChange={handleBeneficiaryChange} />
+          </div>
         </CollapsibleSection>
-        
+
         {error && <p className="error-message">{error}</p>}
         {success && <p className="success-message">{success}</p>}
 
         <div className="modal-actions">
-          <button type="submit">Crear Cliente</button>
+          <button type="submit" disabled={!isFormValid()}>Crear Cliente</button>
         </div>
       </form>
     </div>

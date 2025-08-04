@@ -15,13 +15,12 @@ const CreateLoanPage = () => {
       try {
         // No necesitamos setLoading(true) aquí si ya está en true
         const [usersRes, associatesRes] = await Promise.all([
-          apiClient.get('/auth/users'), // Obtener todos para que el admin elija
+          apiClient.get('/auth/users?role=cliente'), // Obtener solo clientes
           apiClient.get('/associates/'),
         ]);
         
-        // Filtrar solo los clientes en el frontend
-        setUsers(usersRes.data.filter(u => u.role === 'cliente'));
-        setAssociates(associatesRes.data);
+        setUsers(usersRes.data.items); // La API ya devuelve los clientes filtrados
+        setAssociates(associatesRes.data.items);
 
       } catch (err) {
         setError('No se pudieron cargar los datos necesarios para el formulario.');

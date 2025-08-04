@@ -9,7 +9,7 @@ class UserBase(BaseModel):
     username: str
     first_name: str
     last_name: str
-    email: EmailStr
+    email: Optional[EmailStr] = None
     phone_number: str
     birth_date: Optional[date] = None
     curp: Optional[str] = None
