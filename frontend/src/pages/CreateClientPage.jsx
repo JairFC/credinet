@@ -4,6 +4,7 @@ import ReactDOM from 'react-dom';
 import { Link, useNavigate } from 'react-router-dom';
 import apiClient from '../services/api';
 import { generateCurp } from '../utils/curp_generator';
+import CustomDatePicker from '../components/DatePicker';
 
 // --- Sub-Components ---
 
@@ -455,7 +456,13 @@ const CreateClientPage = () => {
           </div>
           <div className="form-group">
             <label>Fecha de Nacimiento</label>
-            <input type="date" name="birth_date" value={formData.birth_date} onChange={handleChange} />
+            <CustomDatePicker 
+              selectedDate={formData.birth_date ? new Date(formData.birth_date) : null}
+              onChange={date => {
+                const formattedDate = date ? date.toISOString().split('T')[0] : '';
+                setFormData(prev => ({ ...prev, birth_date: formattedDate }));
+              }}
+            />
           </div>
           <div className="form-group">
             <label>Género</label>
