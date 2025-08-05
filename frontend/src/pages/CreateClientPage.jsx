@@ -95,6 +95,45 @@ const CurpModal = ({ modalState, onConfirm, onCancel, onCurpChange, onCloseResul
   );
 };
 
+const ErrorModal = ({ errors, onClose }) => {
+  if (errors.length === 0) return null;
+
+  return ReactDOM.createPortal(
+    <div style={modalStyles.backdrop}>
+      <div style={modalStyles.content}>
+        <h2 style={{color: '#f06565', marginTop: 0}}>❌ Faltan Datos</h2>
+        <p>Por favor, corrige los siguientes errores antes de continuar:</p>
+        <ul style={{textAlign: 'left', paddingLeft: '20px'}}>
+          {errors.map((error, index) => (
+            <li key={index}>{error}</li>
+          ))}
+        </ul>
+        <div style={modalStyles.actions}>
+          <button onClick={onClose}>Entendido</button>
+        </div>
+      </div>
+    </div>,
+    document.getElementById('modal-root')
+  );
+};
+
+const InfoModal = ({ modalState, onClose }) => {
+  if (!modalState.isOpen) return null;
+
+  return ReactDOM.createPortal(
+    <div style={modalStyles.backdrop}>
+      <div style={modalStyles.content}>
+        <h2 style={{color: '#51cf66', marginTop: 0}}>✅ Éxito</h2>
+        <p>{modalState.message}</p>
+        <div style={modalStyles.actions}>
+          <button onClick={onClose}>Aceptar</button>
+        </div>
+      </div>
+    </div>,
+    document.getElementById('modal-root')
+  );
+};
+
 
 // --- Main Page Component ---
 
@@ -112,6 +151,9 @@ const CreateClientPage = () => {
   const [formErrors, setFormErrors] = useState({});
   const [curpError, setCurpError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [validationErrors, setValidationErrors] = useState([]);
+  const [isPhoneUnique, setIsPhoneUnique] = useState(true);
+  const [infoModalState, setInfoModalState] = useState({ isOpen: false, message: '' });
   
   // CURP validation state
   const [isCurpVerified, setIsCurpVerified] = useState(false);
@@ -131,7 +173,7 @@ const CreateClientPage = () => {
   const navigate = useNavigate();
 
   // --- Form Validation ---
-  const validateField = (name, value) => {
+  const validateField = async (name, value) => {
     let errorMsg = '';
     switch (name) {
       case 'username':
@@ -144,17 +186,38 @@ const CreateClientPage = () => {
         if (value !== formData.password) errorMsg = 'Las contraseñas no coinciden.';
         break;
       case 'phone_number':
-        if (value.length > 0 && !/^\d{10}$/.test(value)) errorMsg = 'Debe ser un número de 10 dígitos.';
+        if (value.length > 0 && !/^\d{10}$/.test(value)) {
+          errorMsg = 'Debe ser un número de 10 dígitos.';
+        } else if (value.length === 10) {
+          try {
+            const { data } = await apiClient.get(`/utils/check-phone/${value}`);
+            if (data.exists) {
+              errorMsg = 'Este número de teléfono ya está registrado.';
+            }
+          } catch (error) {
+            console.error("Error checking phone number:", error);
+          }
+        }
         break;
     }
     setFormErrors(prev => ({ ...prev, [name]: errorMsg }));
   };
 
-  const isFormValid = () => {
-    const requiredFields = ['username', 'password', 'first_name', 'paternal_last_name', 'phone_number'];
-    const hasNoErrors = Object.values(formErrors).every(err => !err);
-    const allRequiredFilled = requiredFields.every(field => formData[field]);
-    return hasNoErrors && allRequiredFilled && isCurpVerified;
+  const validateForm = () => {
+    const errors = [];
+    if (!formData.first_name) errors.push("El nombre es obligatorio.");
+    if (!formData.paternal_last_name) errors.push("El apellido paterno es obligatorio.");
+    if (!formData.username) errors.push("El nombre de usuario es obligatorio.");
+    if (formErrors.username) errors.push(`Nombre de usuario: ${formErrors.username}`);
+    if (!formData.password) errors.push("La contraseña es obligatoria.");
+    if (formErrors.password) errors.push(`Contraseña: ${formErrors.password}`);
+    if (formData.password !== formData.confirmPassword) errors.push("Las contraseñas no coinciden.");
+    if (!formData.phone_number) errors.push("El número de teléfono es obligatorio.");
+    if (formErrors.phone_number) errors.push(`Teléfono: ${formErrors.phone_number}`);
+    if (!isPhoneUnique) errors.push("El número de teléfono ya está registrado.");
+    if (!isCurpVerified) errors.push("La CURP debe ser validada.");
+
+    return errors;
   };
 
   // --- Data Fetching and Effects ---
@@ -244,10 +307,24 @@ const CreateClientPage = () => {
   // --- Event Handlers ---
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
-    validateField(name, value);
+    let finalValue = value;
+
+    if (name === 'phone_number' || (name === 'phone_number' && e.currentTarget.parentElement.classList.contains('beneficiary-phone'))) {
+      finalValue = value.replace(/\D/g, '').slice(0, 10);
+    }
+
+    if (name === 'phone_number') {
+      setFormData(prev => ({ ...prev, [name]: finalValue }));
+    } else if (e.currentTarget.parentElement.classList.contains('beneficiary-phone')) {
+      setBeneficiaryData(prev => ({ ...prev, [name]: finalValue }));
+    } else {
+      setFormData(prev => ({ ...prev, [name]: finalValue }));
+    }
+
+    validateField(name, finalValue);
+
     if (name === "address_state" && isApiDown) {
-      const selectedEstado = mexicoData.estados.find(e => e.nombre === value);
+      const selectedEstado = mexicoData.estados.find(e => e.nombre === finalValue);
       setMunicipios(selectedEstado ? selectedEstado.municipios : []);
       setFormData(prev => ({ ...prev, address_municipality: '' }));
     }
@@ -255,7 +332,8 @@ const CreateClientPage = () => {
   
   const handleBeneficiaryChange = (e) => {
     const { name, value } = e.target;
-    setBeneficiaryData(prev => ({ ...prev, [name]: value }));
+    const finalValue = name === 'phone_number' ? value.replace(/\D/g, '').slice(0, 10) : value;
+    setBeneficiaryData(prev => ({ ...prev, [name]: finalValue }));
   };
 
   const handleCurpChange = (e) => {
@@ -320,12 +398,12 @@ const CreateClientPage = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!isFormValid()) {
-      setError("Por favor, complete todos los campos obligatorios (*) y verifique que la CURP esté disponible.");
+    const errors = validateForm();
+    if (errors.length > 0) {
+      setValidationErrors(errors);
       return;
     }
     setError('');
-    setSuccess('');
 
     try {
       const userData = {
@@ -340,8 +418,11 @@ const CreateClientPage = () => {
       delete userData.confirmPassword;
 
       await apiClient.post('/auth/users', userData);
-      setSuccess('¡Cliente registrado con éxito! Redirigiendo...');
-      setTimeout(() => navigate('/clients'), 2000);
+      setInfoModalState({ isOpen: true, message: '¡Cliente registrado con éxito! Redirigiendo...' });
+      setTimeout(() => {
+        setInfoModalState({ isOpen: false, message: '' });
+        navigate('/clients');
+      }, 2000);
     } catch (err) {
       setError(err.response?.data?.detail || 'Ocurrió un error inesperado.');
     }
@@ -351,6 +432,8 @@ const CreateClientPage = () => {
   return (
     <div className="clients-page">
       <CurpModal modalState={modalState} onConfirm={handleConfirmCurp} onCancel={handleCancelModal} onCurpChange={handleModalCurpChange} onCloseResult={handleCloseResultModal} />
+      <ErrorModal errors={validationErrors} onClose={() => setValidationErrors([])} />
+      <InfoModal modalState={infoModalState} onClose={() => setInfoModalState({ isOpen: false, message: '' })} />
       
       <Link to="/clients" className="back-link">← Volver a Clientes</Link>
       <h1>Crear Nuevo Cliente</h1>
@@ -458,8 +541,9 @@ const CreateClientPage = () => {
           </div>
           <div className="form-group">
             <label>Teléfono *</label>
-            <input type="text" name="phone_number" value={formData.phone_number} onChange={handleChange} required />
+            <input type="text" name="phone_number" value={formData.phone_number} onChange={handleChange} required maxLength="10" />
             {formErrors.phone_number && <span className="field-error-message">{formErrors.phone_number}</span>}
+            {!isPhoneUnique && <span className="field-error-message">Este teléfono ya está registrado.</span>}
           </div>
           <div className="form-group">
             <label>Email</label>
@@ -527,15 +611,14 @@ const CreateClientPage = () => {
           </div>
           <div className="form-group">
             <label>Teléfono del Beneficiario</label>
-            <input type="text" name="phone_number" value={beneficiaryData.phone_number} onChange={handleBeneficiaryChange} />
+            <input type="text" name="phone_number" value={beneficiaryData.phone_number} onChange={handleBeneficiaryChange} maxLength="10" />
           </div>
         </CollapsibleSection>
 
         {error && <p className="error-message">{error}</p>}
-        {success && <p className="success-message">{success}</p>}
 
         <div className="modal-actions">
-          <button type="submit" disabled={!isFormValid()}>Crear Cliente</button>
+          <button type="submit">Crear Cliente</button>
         </div>
       </form>
     </div>

@@ -85,6 +85,8 @@ async def register_user(
                 raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="El nombre de usuario ya existe.")
             if 'users_email_key' in e.constraint_name:
                 raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="El email ya está registrado.")
+            if 'users_phone_number_key' in e.constraint_name:
+                raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="El número de teléfono ya está registrado.")
             if 'users_curp_key' in e.constraint_name:
                 raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="La CURP ya está registrada.")
             raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=f"Error de unicidad no manejado: {e.constraint_name}")

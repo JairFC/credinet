@@ -32,6 +32,19 @@ async def check_username_exists(username: str, conn: asyncpg.Connection = Depend
     return {"exists": record is not None}
 
 
+@router.get("/check-phone/{phone_number}", summary="Verificar si un número de teléfono ya existe")
+async def check_phone_exists(phone_number: str, conn: asyncpg.Connection = Depends(get_db)):
+    """
+    Verifica si un número de teléfono ya está registrado en la base de datos.
+    """
+    if not phone_number or not phone_number.isdigit() or len(phone_number) != 10:
+        raise HTTPException(status_code=400, detail="El número de teléfono debe tener 10 dígitos.")
+    
+    record = await conn.fetchrow("SELECT id FROM users WHERE phone_number = $1", phone_number)
+    
+    return {"exists": record is not None}
+
+
 @router.get("/zip-code/{zip_code}", summary="Consultar información de un código postal")
 async def get_zip_code_info(zip_code: str):
     """

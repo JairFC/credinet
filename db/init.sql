@@ -43,7 +43,7 @@ CREATE TABLE IF NOT EXISTS users (
     first_name VARCHAR(100) NOT NULL,
     last_name VARCHAR(100) NOT NULL,
     email VARCHAR(100) UNIQUE,
-    phone_number VARCHAR(10) NOT NULL,
+    phone_number VARCHAR(10) UNIQUE NOT NULL,
     birth_date DATE,
     curp VARCHAR(18) UNIQUE,
     profile_picture_url VARCHAR(255),

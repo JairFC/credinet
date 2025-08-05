@@ -48,12 +48,15 @@ Para minimizar la entrada de datos manual y acelerar el proceso de registro, el 
     -   **Colonia:** Se convierte en un campo de texto libre.
     -   Esta mejora minimiza los errores de captura de datos incluso cuando los servicios externos fallan.
 
-### 3. Validación de Teléfono
+### 4. Validación de Teléfono (Unicidad y Formato)
 
--   **Frontend:** Se realiza una validación en tiempo real para asegurar que el número de teléfono contenga exactamente 10 dígitos, mostrando un mensaje de error si el formato es incorrecto.
--   **Backend:** El Pydantic schema en el backend (`UserCreate`) también aplica una validación estricta para asegurar la integridad de los datos antes de guardarlos en la base de datos.
+-   **Validación en Tiempo Real:** A medida que el usuario escribe en el campo de teléfono, el sistema verifica en tiempo real contra el endpoint `GET /api/utils/check-phone/{phone_number}` si el número ya está registrado.
+-   **Restricción de Formato:** El campo solo permite la entrada de 10 dígitos numéricos.
+-   **Feedback Centralizado:** Cualquier error de validación (formato incorrecto, número duplicado) se añade a la lista de errores que se mostrará en el modal de validación al intentar crear el cliente.
 
-### 4. Creación Atómica de Entidades
+### 5. Creación Atómica y Retroalimentación por Modal
 
--   Al enviar el formulario, el frontend empaqueta todos los datos, incluyendo la información opcional del beneficiario, en un único objeto.
--   El backend (`POST /api/auth/users`) está diseñado para recibir este objeto y, en una única transacción de base de datos, crear el registro en la tabla `users` y, si se proporciona, también en la tabla `beneficiaries`, asegurando la consistencia de los datos.
+-   **Validación Centralizada:** Al hacer clic en "Crear Cliente", el sistema no envía la petición inmediatamente. Primero, una función de validación revisa todos los campos.
+-   **Modal de Errores:** Si se encuentra uno o más errores (campos vacíos, CURP no validada, teléfono duplicado), se muestra una **ventana modal de errores** que lista de forma clara todo lo que el usuario debe corregir.
+-   **Modal de Éxito:** Si la creación del cliente en el backend es exitosa, se muestra una **ventana modal de éxito** confirmando la operación antes de redirigir al usuario a la lista de clientes.
+-   **Creación Atómica:** Al enviar el formulario, el frontend empaqueta todos los datos, incluyendo la información opcional del beneficiario, en un único objeto. El backend (`POST /api/auth/users`) está diseñado para recibir este objeto y, en una única transacción de base de datos, crear el registro en la tabla `users` y, si se proporciona, también en la tabla `beneficiaries`, asegurando la consistencia de los datos.
