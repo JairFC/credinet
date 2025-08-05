@@ -16,9 +16,9 @@ El ecosistema de Credinet gira en torno a cinco entidades interconectadas:
     -   **Relación:** Un usuario con el rol `asociado` está directamente vinculado a una (y solo una) entidad `Associate`.
 
 3.  **Cliente (`Client`):**
-    -   **Definición:** La persona o entidad final que recibe un préstamo.
+    -   **Definición:** Un `User` que tiene asignado el rol de `cliente`. Es la persona o entidad final que recibe un préstamo.
     -   **Propósito:** Son los beneficiarios de los servicios financieros.
-    -   **Relación:** Un cliente puede tener múltiples préstamos. En el futuro, un cliente podrá tener su propio `User` para acceder al sistema.
+    -   **Relación:** Un cliente (que es un usuario) puede tener múltiples préstamos.
 
 4.  **Préstamo (`Loan`):**
     -   **Definición:** El producto financiero central. Es un contrato de dinero entre la empresa y un `Cliente`.

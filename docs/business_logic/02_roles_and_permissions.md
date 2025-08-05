@@ -10,7 +10,7 @@ El sistema utiliza un modelo de roles puro, donde los permisos no están atados 
 |---------------------------|------------------------------------------------------------------------------|----------------------------------------------------------------------------------|
 | `desarrollador`           | Acceso total para desarrollo y depuración.                                   | Todas las rutas y funcionalidades, sin restricciones.                            |
 | `administrador`           | Gestión completa del negocio. Control casi total.                            | CRUD completo de Asociados, Clientes, Préstamos y Usuarios.                      |
-| `auxiliar_administrativo` | Apoyo al administrador con permisos para crear y editar.                     | Puede crear/editar, pero no eliminar entidades críticas como Asociados o Usuarios. |
+| `auxiliar_administrativo` | Apoyo al administrador con permisos para crear y editar.                     | Puede crear/editar entidades, pero no eliminar usuarios o asociados. |
 | `asociado`                | Usuario de una empresa asociada para ver su cartera.                         | Acceso de solo lectura a sus préstamos, clientes y comisiones.                   |
 | `cliente`                 | Cliente final que accede para ver sus propios productos.         | Acceso de solo lectura a sus préstamos, historial de pagos y perfil.             |
 

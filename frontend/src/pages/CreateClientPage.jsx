@@ -110,6 +110,8 @@ const CreateClientPage = () => {
   });
   const [beneficiaryData, setBeneficiaryData] = useState({ full_name: '', relationship: '', phone_number: '' });
   const [formErrors, setFormErrors] = useState({});
+  const [curpError, setCurpError] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   
   // CURP validation state
   const [isCurpVerified, setIsCurpVerified] = useState(false);
@@ -193,6 +195,52 @@ const CreateClientPage = () => {
     }
   }, [formData.address_zip_code]);
 
+  // Autogenerate username
+  useEffect(() => {
+    const { first_name, paternal_last_name } = formData;
+
+    const generateAndCheckUsername = async () => {
+      if (first_name && paternal_last_name) {
+        let baseUsername = `${first_name.toLowerCase().split(' ')[0]}.${paternal_last_name.toLowerCase().replace(/\s/g, '')}`;
+        let finalUsername = baseUsername;
+        let counter = 1;
+
+        while (true) {
+          try {
+            const { data } = await apiClient.get(`/utils/check-username/${finalUsername}`);
+            if (!data.exists) {
+              setFormData(prev => ({ ...prev, username: finalUsername }));
+              break;
+            } else {
+              finalUsername = `${baseUsername}${counter}`;
+              counter++;
+            }
+          } catch (error) {
+            console.error("Error checking username:", error);
+            break; 
+          }
+        }
+      }
+    };
+
+    const timer = setTimeout(() => {
+      generateAndCheckUsername();
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [formData.first_name, formData.paternal_last_name]);
+
+  // Autogenerate password from CURP
+  useEffect(() => {
+    if (formData.curp.length === 18) {
+      setFormData(prev => ({
+        ...prev,
+        password: prev.curp,
+        confirmPassword: prev.curp
+      }));
+    }
+  }, [formData.curp]);
+
   // --- Event Handlers ---
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -214,9 +262,17 @@ const CreateClientPage = () => {
     const newCurp = e.target.value.toUpperCase();
     setFormData(prev => ({ ...prev, curp: newCurp }));
     setIsCurpVerified(false);
+    if (newCurp.length > 0) {
+      setCurpError('');
+    }
   };
 
   const handleVerifyClick = () => {
+    if (formData.curp.length !== 18) {
+      setCurpError('La CURP debe tener 18 caracteres para poder ser verificada.');
+      return;
+    }
+    setCurpError('');
     setModalState({ isOpen: true, step: 'confirm', curp: formData.curp, result: { message: '', type: '' } });
   };
 
@@ -253,6 +309,11 @@ const CreateClientPage = () => {
     const isSuccess = modalState.result.type === 'success';
     setModalState({ isOpen: false, step: 'confirm', curp: '', result: { message: '', type: '' } });
     if (isSuccess) {
+      setFormData(prev => ({
+        ...prev,
+        password: prev.curp,
+        confirmPassword: prev.curp
+      }));
       setOpenSection('account'); // Move to the next section
     }
   };
@@ -362,8 +423,9 @@ const CreateClientPage = () => {
             <label>CURP *</label>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
               <input type="text" name="curp" value={formData.curp} onChange={handleCurpChange} maxLength="18" style={{ textTransform: 'uppercase' }} required />
-              <button type="button" onClick={handleVerifyClick} disabled={formData.curp.length !== 18}>Verificar</button>
+              <button type="button" onClick={handleVerifyClick}>Verificar</button>
             </div>
+            {curpError && <span className="field-error-message" style={{ marginTop: '8px' }}>{curpError}</span>}
             {isCurpVerified && <span style={{color: '#51cf66', fontSize: '0.9em', fontWeight: 'bold', marginTop: '8px'}}>✅ CURP validada</span>}
           </div>
         </CollapsibleSection>
@@ -376,12 +438,22 @@ const CreateClientPage = () => {
           </div>
           <div className="form-group">
             <label>Contraseña *</label>
-            <input type="password" name="password" value={formData.password} onChange={handleChange} required />
+            <div className="password-input-container">
+              <input type={showPassword ? "text" : "password"} name="password" value={formData.password} onChange={handleChange} required />
+              <button type="button" onClick={() => setShowPassword(!showPassword)} className="password-toggle-button" title={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}>
+                👁️
+              </button>
+            </div>
             {formErrors.password && <span className="field-error-message">{formErrors.password}</span>}
           </div>
           <div className="form-group">
             <label>Confirmar Contraseña *</label>
-            <input type="password" name="confirmPassword" value={formData.confirmPassword} onChange={handleChange} required />
+            <div className="password-input-container">
+              <input type={showPassword ? "text" : "password"} name="confirmPassword" value={formData.confirmPassword} onChange={handleChange} required />
+              <button type="button" onClick={() => setShowPassword(!showPassword)} className="password-toggle-button" title={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}>
+                👁️
+              </button>
+            </div>
             {formErrors.confirmPassword && <span className="field-error-message">{formErrors.confirmPassword}</span>}
           </div>
           <div className="form-group">

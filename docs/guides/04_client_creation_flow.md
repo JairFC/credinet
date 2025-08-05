@@ -26,7 +26,19 @@ La CURP es el identificador único más importante para un cliente. El sistema i
     -   El modal se actualiza para mostrar el resultado: un mensaje claro de éxito ("✅ CURP disponible") o de error ("❌ Esta CURP ya está registrada").
 -   **Bloqueo Inteligente:** El botón principal "Crear Cliente" permanece deshabilitado hasta que una CURP válida y disponible ha sido confirmada a través del flujo del modal, previniendo envíos de formularios erróneos.
 
-### 2. Autocompletado de Dirección con Fallback Inteligente
+### 2. Autocompletado Inteligente de Usuario y Contraseña
+
+Para minimizar la entrada de datos manual y acelerar el proceso de registro, el formulario incluye dos potentes automatizaciones:
+
+-   **Generación de Nombre de Usuario en Tiempo Real:**
+    -   A medida que el administrador escribe el nombre y apellido del cliente, el campo `Nombre de Usuario` se genera automáticamente siguiendo el formato `nombre.apellido`.
+    -   El sistema verifica la disponibilidad de este nombre de usuario en tiempo real contra el endpoint `GET /api/utils/check-username/{username}`.
+    -   Si el nombre de usuario ya existe, el sistema añade automáticamente un sufijo numérico (ej. `sofia.vargas1`, `sofia.vargas2`) hasta encontrar uno disponible.
+-   **Autocompletado de Contraseña Condicional:**
+    -   La contraseña **no se rellena automáticamente** hasta que la CURP del cliente ha sido **verificada con éxito** a través del modal.
+    -   Una vez que la CURP es validada, los campos de `Contraseña` y `Confirmar Contraseña` se rellenan automáticamente con el valor de la CURP, proporcionando una contraseña inicial segura y fácil de recordar para el administrador.
+
+### 3. Autocompletado de Dirección con Fallback Inteligente
 
 -   **Flujo Principal:** Cuando el usuario introduce un Código Postal de 5 dígitos, el sistema autocompleta los campos de `Estado`, `Municipio` y proporciona una lista de `Colonias` para seleccionar.
 

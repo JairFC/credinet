@@ -19,6 +19,19 @@ async def check_curp_exists(curp: str, conn: asyncpg.Connection = Depends(get_db
     
     return {"exists": record is not None}
 
+@router.get("/check-username/{username}", summary="Verificar si un nombre de usuario ya existe")
+async def check_username_exists(username: str, conn: asyncpg.Connection = Depends(get_db)):
+    """
+    Verifica si un nombre de usuario ya está registrado en la base de datos.
+    """
+    if not username:
+        raise HTTPException(status_code=400, detail="El nombre de usuario no puede estar vacío.")
+    
+    record = await conn.fetchrow("SELECT id FROM users WHERE username = $1", username)
+    
+    return {"exists": record is not None}
+
+
 @router.get("/zip-code/{zip_code}", summary="Consultar información de un código postal")
 async def get_zip_code_info(zip_code: str):
     """

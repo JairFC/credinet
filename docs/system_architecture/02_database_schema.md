@@ -37,7 +37,7 @@ Almacena la información para cualquier individuo en el sistema (administradores
 - `password_hash`: VARCHAR(255) NOT NULL
 - `first_name`: VARCHAR(100) NOT NULL
 - `last_name`: VARCHAR(100) NOT NULL
-- `email`: VARCHAR(100) UNIQUE NOT NULL
+- `email`: VARCHAR(100) UNIQUE
 - `phone_number`: VARCHAR(10) NOT NULL
 - `birth_date`: DATE
 - `curp`: VARCHAR(18) UNIQUE
@@ -47,6 +47,7 @@ Almacena la información para cualquier individuo en el sistema (administradores
 - `address_int_num`: VARCHAR(20)
 - `address_colonia`: VARCHAR(100)
 - `address_zip_code`: VARCHAR(10)
+- `address_municipality`: VARCHAR(100)
 - `address_state`: VARCHAR(50)
 - `associate_id`: INTEGER REFERENCES `associates(id)`
 - `updated_at`: TIMESTAMPTZ
