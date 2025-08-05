@@ -14,6 +14,9 @@ Actualmente, la iniciativa principal del proyecto es la **Modernización de Perf
 -   **"Necesito entender la arquitectura técnica (qué tecnología usamos, cómo se conectan las partes)."**
     -   **Ve a:** La carpeta `system_architecture/`. Encontrarás diagramas, descripciones de los componentes (frontend, backend) y el esquema de la base de datos.
 
+-   **"¿Cómo debo escribir o estructurar el CSS?"**
+    -   **Consulta:** La nueva [Guía de Arquitectura CSS](./guides/05_css_architecture_and_style_guide.md).
+
 -   **"Quiero empezar a desarrollar o configurar mi entorno."**
     -   **Sigue la guía:** El directorio `onboarding/` tiene las instrucciones paso a paso. Lee primero `01_developer_setup.md` y luego `02_system_health_check.md` para entender nuestras herramientas de calidad.
 
