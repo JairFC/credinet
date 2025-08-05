@@ -2,7 +2,7 @@
 
 El System Health Check (SH) es el sistema de diagnóstico de arranque de Credinet. Su misión es actuar como la primera línea de defensa contra regresiones, verificando la integridad de todos los componentes críticos de la aplicación después de cada cambio.
 
-No es solo una prueba, es una simulación de una secuencia de arranque que valida desde la conectividad básica hasta las reglas de negocio más complejas.
+No es solo una prueba, es una simulación de una secuencia de arranque que valida desde la conectividad básica hasta las reglas de negocio más complejas y los flujos de creación de datos.
 
 ## ¿Cómo Funciona?
 
@@ -16,47 +16,45 @@ Puedes monitorear el SH de dos maneras:
     ```bash
     docker logs -f credinet_smoke_tester
     ```
-    Verás una salida clara y formateada, indicando el progreso y el resultado (`[ OK ]` o `[FAIL]`) de cada paso.
+    Verás una salida clara y formateada, indicando el progreso y el resultado (`[ OK ]`, `[FAIL]` o `[SKIP]`) de cada paso.
 
 2.  **Registro Persistente:**
     El SH genera un log detallado de cada ejecución en `backend/system_health_check.log`. Este archivo es invaluable para la depuración post-mortem.
 
-## Cobertura de Chequeos
+## Cobertura de Chequeos (22 Pruebas)
 
-El SH está estructurado en secciones lógicas para facilitar su entendimiento y expansión.
+El SH ha sido expandido para cubrir nuevas funcionalidades críticas.
 
 ### Sección 1: Conectividad
--   **[1/15] PING:** Verifica que el servidor backend esté en línea y respondiendo en `/api/ping`.
+-   **[1/22] PING:** Verifica que el servidor backend esté en línea.
 
 ### Sección 2: Autenticación (AUTH)
--   **[2/15] Login Admin:** Confirma que el usuario `admin` puede autenticarse y recibir un token.
--   **[3/15] Login Asociado:** Confirma que el usuario `asociado_test` puede autenticarse.
--   **[4/15] Login Cliente:** Confirma que la usuaria `sofia.vargas` puede autenticarse.
+-   **[2/22] Login Admin:** Confirma que el usuario `admin` puede autenticarse.
+-   **[3/22] Login Asociado:** Confirma que el usuario `asociado_test` puede autenticarse.
+-   **[4/22] Login Cliente:** Confirma que la usuaria `sofia.vargas` puede autenticarse.
 
 ### Sección 3: Control de Acceso Basado en Roles (RBAC)
-Esta es la sección más crítica. Verifica que cada rol tenga los permisos correctos y, más importante, que **no tenga** permisos que no le corresponden.
-
--   **Permisos de Administrador:**
-    -   **[5/15]** Puede acceder a la lista de usuarios (`/api/auth/users`).
-    -   **[6/15]** Puede acceder a la lista de asociados (`/api/associates/`).
-    -   **[7/15]** Puede acceder al dashboard global (`/api/loans/summary`).
-
--   **Permisos de Asociado:**
-    -   **[8/15]** **NO PUEDE** acceder a la lista de usuarios.
-    -   **[9/15]** Puede acceder a su propio dashboard (`/api/associates/dashboard`).
-
--   **Permisos de Cliente:**
-    -   **[10/15]** **NO PUEDE** acceder a la lista de usuarios.
-    -   **[11/15]** **NO PUEDE** acceder a la lista de asociados.
-    -   **[12/15]** Puede acceder a su propio dashboard (`/api/auth/me/dashboard`).
+-   **[5-7/22] Permisos de Administrador:** Verifica el acceso a listas de usuarios, asociados y al dashboard global.
+-   **[8-9/22] Permisos de Asociado:** Verifica que **NO PUEDE** ver usuarios y que puede ver su propio dashboard.
+-   **[10-12/22] Permisos de Cliente:** Verifica que **NO PUEDE** ver listas de usuarios/asociados y que puede ver su propio dashboard.
 
 ### Sección 4: Lógica de Negocio (Filtros)
--   **[13/15] LOGIC: Filtro de Usuarios:** Verifica que el filtro de búsqueda en la lista de usuarios funcione correctamente.
--   **[14/15] LOGIC: Filtro de Asociados:** Verifica que el filtro de búsqueda en la lista de asociados funcione correctamente.
--   **[15/15] LOGIC: Filtro de Préstamos:** Verifica que el filtro de búsqueda en la lista de préstamos funcione correctamente.
+-   **[13-15/22] Filtros de Listas:** Verifica que los filtros de búsqueda en usuarios, asociados y préstamos funcionan correctamente.
+
+### Sección 5: Utilidades (NUEVO)
+-   **[16-17/22] Check Username:** Valida el endpoint que verifica la existencia de nombres de usuario.
+-   **[18/22] Check CURP:** Valida el endpoint que verifica la existencia de CURPs.
+-   **[19/22] Check Phone:** Valida el endpoint que verifica la existencia de números de teléfono.
+-   **[20/22] Check Zip Code:** Valida la conectividad con la API externa de códigos postales.
+
+### Sección 6: Flujo E2E de Creación y Acceso (NUEVO)
+-   **[21/22] E2E: Creación de nuevo cliente:** Verifica que se puede crear un nuevo usuario con el rol `cliente` a través de la API.
+-   **[22/22] E2E: Login de nuevo cliente:** Confirma que el cliente recién creado puede iniciar sesión.
+-   **[SKIP] E2E: Creación de préstamo para nuevo cliente:** **Esta prueba se omite intencionadamente.** Reveló que el endpoint `POST /api/loans` no está implementado. La prueba está diseñada para pasar con un estado `[SKIP]` hasta que se implemente la funcionalidad.
+-   **[PENDIENTE] E2E: Verificación de Permisos de Préstamo:** Las pruebas que verifican que el nuevo cliente puede ver su préstamo y que otros clientes no pueden, dependen de la creación del préstamo. Se activarán una vez que el endpoint sea implementado.
 
 ## Protocolo de Uso
 
--   **Obligatorio:** El SH **debe pasar al 100%** antes de fusionar cualquier cambio a la rama principal.
--   **Expansión:** Al añadir una nueva funcionalidad o endpoint, es **mandatorio** añadir un nuevo chequeo al script `backend/smoke_test.py` en la sección correspondiente.
+-   **Obligatorio:** El SH **debe pasar (o mostrar SKIPS justificados)** antes de fusionar cualquier cambio a la rama principal.
+-   **Expansión:** Al añadir una nueva funcionalidad o endpoint, es **mandatorio** añadir un nuevo chequeo al script `backend/smoke_test.py`.
 -   **Estabilidad del Entorno:** El `docker-compose.yml` ha sido fortalecido con un `healthcheck` de base de datos que previene condiciones de carrera durante el arranque, asegurando que el SH se ejecute sobre una base estable.

@@ -1,17 +1,25 @@
 import React from 'react';
-import ReactDatePicker from 'react-datepicker';
-import 'react-datepicker/dist/react-datepicker.css';
+import DatePicker, { registerLocale } from 'react-datepicker';
+import es from 'date-fns/locale/es';
 
-const DatePicker = ({ selected, onChange }) => {
+// Registrar el locale en español
+registerLocale('es', es);
+
+const CustomDatePicker = ({ selectedDate, onChange }) => {
   return (
-    <ReactDatePicker
-      selected={selected}
+    <DatePicker
+      selected={selectedDate}
       onChange={onChange}
-      dateFormat="yyyy-MM-dd"
-      className="form-control"
-      wrapperClassName="date-picker-wrapper"
+      dateFormat="dd/MM/yyyy"
+      placeholderText="dd/mm/aaaa"
+      showMonthDropdown
+      showYearDropdown
+      dropdownMode="select"
+      locale="es"
+      className="form-control" // Reutilizamos la clase para mantener el estilo
+      autoComplete="off"
     />
   );
 };
 
-export default DatePicker;
+export default CustomDatePicker;

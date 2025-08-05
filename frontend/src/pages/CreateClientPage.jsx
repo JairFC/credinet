@@ -4,6 +4,7 @@ import ReactDOM from 'react-dom';
 import { Link, useNavigate } from 'react-router-dom';
 import apiClient from '../services/api';
 import { generateCurp } from '../utils/curp_generator';
+import CustomDatePicker from '../components/DatePicker';
 
 // --- Sub-Components ---
 
@@ -16,44 +17,12 @@ const CollapsibleSection = ({ title, children, isOpen, onClick }) => (
   </div>
 );
 
-// Estilos definidos como objetos de JavaScript para garantizar que no haya conflictos
-const modalStyles = {
-  backdrop: {
-    position: 'fixed',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.75)',
-    display: 'flex',
-    justifyContent: 'center',
-    alignItems: 'center',
-    zIndex: 1000,
-  },
-  content: {
-    background: '#2a2a2a',
-    color: 'rgba(255, 255, 255, 0.9)',
-    padding: '30px',
-    borderRadius: '8px',
-    width: '90%',
-    maxWidth: '500px',
-    boxShadow: '0 5px 20px rgba(0,0,0,0.4)',
-    border: '1px solid #444',
-  },
-  actions: {
-    display: 'flex',
-    justifyContent: 'flex-end',
-    gap: '15px',
-    marginTop: '25px',
-  }
-};
-
 const CurpModal = ({ modalState, onConfirm, onCancel, onCurpChange, onCloseResult }) => {
   if (!modalState.isOpen) return null;
 
   return ReactDOM.createPortal(
-    <div style={modalStyles.backdrop}>
-      <div style={modalStyles.content}>
+    <div className="modal-backdrop">
+      <div className="modal-content">
         {modalState.step === 'confirm' && (
           <>
             <h2>Verificar CURP</h2>
@@ -66,7 +35,7 @@ const CurpModal = ({ modalState, onConfirm, onCancel, onCurpChange, onCloseResul
               className="form-control"
               style={{ textTransform: 'uppercase' }}
             />
-            <div style={modalStyles.actions}>
+            <div className="modal-actions">
               <button onClick={onConfirm}>Confirmar y Verificar</button>
               <button onClick={onCancel} type="button">Cancelar</button>
             </div>
@@ -84,7 +53,7 @@ const CurpModal = ({ modalState, onConfirm, onCancel, onCurpChange, onCloseResul
               {modalState.result.type === 'success' ? '✅ Verificación Exitosa' : '❌ Error de Verificación'}
             </h2>
             <p style={{ fontSize: '1.1rem' }}>{modalState.result.message}</p>
-            <div style={modalStyles.actions}>
+            <div className="modal-actions">
               <button onClick={onCloseResult}>Entendido</button>
             </div>
           </>
@@ -99,8 +68,8 @@ const ErrorModal = ({ errors, onClose }) => {
   if (errors.length === 0) return null;
 
   return ReactDOM.createPortal(
-    <div style={modalStyles.backdrop}>
-      <div style={modalStyles.content}>
+    <div className="modal-backdrop">
+      <div className="modal-content">
         <h2 style={{color: '#f06565', marginTop: 0}}>❌ Faltan Datos</h2>
         <p>Por favor, corrige los siguientes errores antes de continuar:</p>
         <ul style={{textAlign: 'left', paddingLeft: '20px'}}>
@@ -108,7 +77,7 @@ const ErrorModal = ({ errors, onClose }) => {
             <li key={index}>{error}</li>
           ))}
         </ul>
-        <div style={modalStyles.actions}>
+        <div className="modal-actions">
           <button onClick={onClose}>Entendido</button>
         </div>
       </div>
@@ -121,11 +90,11 @@ const InfoModal = ({ modalState, onClose }) => {
   if (!modalState.isOpen) return null;
 
   return ReactDOM.createPortal(
-    <div style={modalStyles.backdrop}>
-      <div style={modalStyles.content}>
+    <div className="modal-backdrop">
+      <div className="modal-content">
         <h2 style={{color: '#51cf66', marginTop: 0}}>✅ Éxito</h2>
         <p>{modalState.message}</p>
-        <div style={modalStyles.actions}>
+        <div className="modal-actions">
           <button onClick={onClose}>Aceptar</button>
         </div>
       </div>
@@ -455,7 +424,13 @@ const CreateClientPage = () => {
           </div>
           <div className="form-group">
             <label>Fecha de Nacimiento</label>
-            <input type="date" name="birth_date" value={formData.birth_date} onChange={handleChange} />
+            <CustomDatePicker 
+              selectedDate={formData.birth_date ? new Date(formData.birth_date) : null}
+              onChange={date => {
+                const formattedDate = date ? date.toISOString().split('T')[0] : '';
+                setFormData(prev => ({ ...prev, birth_date: formattedDate }));
+              }}
+            />
           </div>
           <div className="form-group">
             <label>Género</label>

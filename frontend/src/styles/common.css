@@ -77,13 +77,6 @@
   height: 40px; /* Altura fija para consistencia */
 }
 
-.modal-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 1rem;
-  margin-top: 1.5rem;
-}
-
 button {
   padding: 10px 20px;
   border: none;
@@ -115,7 +108,6 @@ button[type="button"] {
   flex-wrap: wrap;
   gap: 1rem;
 }
-
 
 .password-input-container {
   position: relative;
@@ -149,7 +141,6 @@ button[type="button"] {
   align-items: center;
   position: relative;
 }
-
 
 .search-input-wrapper::before {
   content: '🔍';
@@ -226,4 +217,55 @@ button[type="button"] {
 .collapsible-content {
   padding: 15px;
   border-top: 1px solid var(--color-border);
+}
+
+/* --- Estilos para Modales --- */
+.modal-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.75);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.modal-content {
+  background: var(--color-surface);
+  color: var(--color-text-primary);
+  padding: 30px;
+  border-radius: 8px;
+  width: 90%;
+  max-width: 500px;
+  box-shadow: 0 5px 20px rgba(0,0,0,0.4);
+  border: 1px solid var(--color-border);
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 15px;
+  margin-top: 25px;
+}
+
+/* Estilos para inputs dentro de modales */
+.modal-content input.form-control {
+  background-color: var(--color-background);
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  color: var(--color-text-primary);
+  padding: 8px 12px;
+  font-size: 1rem;
+  width: calc(100% - 24px); /* Adjust for padding */
+  box-sizing: border-box;
+  margin-top: 10px; /* Add some space below the label */
+}
+
+.modal-content input.form-control:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 2px var(--color-primary-light);
 }
