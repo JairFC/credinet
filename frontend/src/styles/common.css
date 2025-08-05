@@ -77,13 +77,6 @@
   height: 40px; /* Altura fija para consistencia */
 }
 
-.modal-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 1rem;
-  margin-top: 1.5rem;
-}
-
 button {
   padding: 10px 20px;
   border: none;
@@ -115,7 +108,6 @@ button[type="button"] {
   flex-wrap: wrap;
   gap: 1rem;
 }
-
 
 .password-input-container {
   position: relative;
@@ -149,7 +141,6 @@ button[type="button"] {
   align-items: center;
   position: relative;
 }
-
 
 .search-input-wrapper::before {
   content: '🔍';
@@ -228,47 +219,36 @@ button[type="button"] {
   border-top: 1px solid var(--color-border);
 }
 
-/* Custom styles for React Datepicker */
-.react-datepicker-wrapper {
-  width: 100%; /* Asegura que el contenedor ocupe todo el espacio */
-}
-
-.react-datepicker__header {
-  padding-top: 8px;
-}
-
-.react-datepicker__header__dropdown {
+/* --- Estilos para Modales --- */
+.modal-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.75);
   display: flex;
   justify-content: center;
-  gap: 10px;
+  align-items: center;
+  z-index: 1000;
 }
 
-.react-datepicker__navigation {
-  top: 12px;
+.modal-content {
+  background: var(--color-surface);
+  color: var(--color-text-primary);
+  padding: 30px;
+  border-radius: 8px;
+  width: 90%;
+  max-width: 500px;
+  box-shadow: 0 5px 20px rgba(0,0,0,0.4);
+  border: 1px solid var(--color-border);
 }
 
-.react-datepicker__navigation--previous {
-  left: 10px; /* Ajusta la posición de la flecha izquierda */
-}
-
-.react-datepicker__navigation--next {
-  right: 10px; /* Ajusta la posición de la flecha derecha */
-}
-
-.react-datepicker__month-read-view--down-arrow,
-.react-datepicker__year-read-view--down-arrow {
-  top: 5px; /* Ajusta la posición de las flechas de los desplegables */
-}
-
-/* Further adjustments for header alignment */
-.react-datepicker__current-month {
-  flex-grow: 1; /* Allow month/year to take available space */
-  text-align: center; /* Center the month/year text */
-}
-
-.react-datepicker__header__dropdown.react-datepicker__header__dropdown--select {
-  flex-grow: 1; /* Allow dropdowns to take available space */
-  justify-content: space-around; /* Distribute space between dropdowns */
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 15px;
+  margin-top: 25px;
 }
 
 /* Estilos para inputs dentro de modales */

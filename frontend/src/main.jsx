@@ -2,8 +2,15 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
 import App from './App';
-import './index.css'; // Estilos globales
-import './styles/common.css'; // Estilos de componentes
+
+// 1. Estilos base y variables
+import './index.css'; 
+// 2. Estilos de librerías de terceros
+import 'react-datepicker/dist/react-datepicker.css';
+// 3. Estilos de componentes comunes
+import './styles/common.css'; 
+// 4. Anulaciones específicas para librerías
+import './styles/overrides.css';
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
