@@ -13,6 +13,7 @@ Este tablero utiliza el formato Kanban en Markdown para rastrear el progreso de 
 
 ### Épica: Modernización de Perfiles de Usuario
 
+-   **[FEATURE - BACKEND]:** Implementar endpoint `POST /api/loans` para la creación de nuevos préstamos. (BLOQUEADOR E2E)
 -   **[REFACTOR - DB]:** Fusionar la tabla `clients` en `users` y añadir los nuevos campos.
 -   **[FEATURE - DB]:** Crear la tabla `associate_levels` para normalizar los niveles de asociado.
 -   **[FEATURE - DB]:** Crear la nueva tabla `beneficiaries` y su relación con `users`.
