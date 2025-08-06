@@ -17,7 +17,7 @@ El formulario está organizado en secciones colapsables para mantener la interfa
 
 La CURP es el identificador único más importante para un cliente. El sistema implementa un flujo robusto en una **ventana modal emergente** para asegurar su unicidad y corrección, mejorando la experiencia de usuario.
 
--   **Generación Automática:** A medida que el usuario completa los campos de `nombre`, `apellidos`, `fecha de nacimiento`, `género` y `estado de nacimiento`, el campo CURP se genera y actualiza automáticamente.
+-   **Generación Automática:** A medida que el usuario completa los campos de `nombre`, `apellidos`, `fecha de nacimiento`, `género` y `estado de nacimiento`, el campo CURP se genera y actualiza automáticamente gracias a la utilidad `curp_generator.js`.
 -   **Verificación Asistida por Modal:**
     -   Un botón "Verificar" se activa cuando la CURP tiene 18 caracteres.
     -   Al presionarlo, **una ventana modal aparece**, superponiéndose al formulario. Esto centra la atención del usuario en el importante paso de la verificación.

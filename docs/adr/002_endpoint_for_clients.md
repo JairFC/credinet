@@ -12,6 +12,8 @@ Se ha decidido modificar el endpoint existente `GET /api/auth/users` para que ac
 
 La llamada a la API para obtener solo clientes es: `GET /api/auth/users?role=cliente`.
 
+En el frontend, la página `ClientsViewPage.jsx` actúa como un contenedor que renderiza el componente `UsersPage.jsx`, pasándole el prop `roleFilter="cliente"` para lograr la vista de "Gestión de Clientes". De esta forma, se reutiliza el endpoint existente `/api/auth/users` y se filtra en el frontend.
+
 **Consecuencias:**
 
 *   **Ventajas:**
