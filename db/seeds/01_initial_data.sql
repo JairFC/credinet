@@ -1,5 +1,5 @@
 -- =============================================================================
--- DATOS DE EJEMPLO (SEED DATA) - v3.0 (con datos de paginación)
+-- DATOS DE EJEMPLO (SEED DATA) - v3.1 (Normalización de Direcciones)
 -- Este script está diseñado para ser seguro de ejecutar múltiples veces.
 -- =============================================================================
 
@@ -24,18 +24,18 @@ INSERT INTO associates (id, name, level_id, contact_person, contact_email, defau
 (3, 'Crédito Rápido del Sur', 1, 'Beatriz Mendoza', 'beatriz.mendoza@sur.com', 7.0)
 ON CONFLICT (id) DO NOTHING;
 
--- 2. Poblar la tabla de usuarios
+-- 2. Poblar la tabla de usuarios (sin direcciones)
 -- Contraseña para todos: Sparrow20
 -- Hash: $2b$12$aSMdt0Kd8I2lrCIvSNbxx.X5U.BmY9MAZAoPvM/MgK5mXOxQgq0s6
-INSERT INTO users (id, username, password_hash, first_name, last_name, email, phone_number, birth_date, curp, address_street, address_colonia, address_zip_code, address_state, associate_id) VALUES
-(1, 'jair', '$2b$12$aSMdt0Kd8I2lrCIvSNbxx.X5U.BmY9MAZAoPvM/MgK5mXOxQgq0s6', 'Jair', 'FC', 'jair@dev.com', '5511223344', '1990-01-15', 'FERJ900115HDFXXX01', 'Calle Falsa 123', 'Centro', '06000', 'Ciudad de México', NULL),
-(2, 'admin', '$2b$12$aSMdt0Kd8I2lrCIvSNbxx.X5U.BmY9MAZAoPvM/MgK5mXOxQgq0s6', 'Admin', 'Total', 'admin@credinet.com', '5522334455', NULL, NULL, NULL, NULL, NULL, NULL, NULL),
-(3, 'asociado_test', '$2b$12$aSMdt0Kd8I2lrCIvSNbxx.X5U.BmY9MAZAoPvM/MgK5mXOxQgq0s6', 'Asociado', 'Prueba', 'asociado@test.com', '5533445566', NULL, NULL, NULL, NULL, NULL, NULL, 1),
-(4, 'sofia.vargas', '$2b$12$aSMdt0Kd8I2lrCIvSNbxx.X5U.BmY9MAZAoPvM/MgK5mXOxQgq0s6', 'Sofía', 'Vargas', 'sofia.vargas@email.com', '5544556677', '1985-05-20', 'VARS850520MDFXXX02', 'Av. Siempre Viva 742', 'Springfield', '90210', 'California', NULL),
-(5, 'juan.perez', '$2b$12$aSMdt0Kd8I2lrCIvSNbxx.X5U.BmY9MAZAoPvM/MgK5mXOxQgq0s6', 'Juan', 'Pérez', 'juan.perez@email.com', '5555667788', '1992-11-30', 'PERJ921130HDFXXX03', 'Calle del Sol 45', 'Roma Norte', '06700', 'Ciudad de México', NULL),
-(6, 'laura.mtz', '$2b$12$aSMdt0Kd8I2lrCIvSNbxx.X5U.BmY9MAZAoPvM/MgK5mXOxQgq0s6', 'Laura', 'Martínez', 'laura.martinez@email.com', '5566778899', NULL, NULL, NULL, NULL, NULL, NULL, NULL),
-(7, 'aux.admin', '$2b$12$aSMdt0Kd8I2lrCIvSNbxx.X5U.BmY9MAZAoPvM/MgK5mXOxQgq0s6', 'Pedro', 'Ramírez', 'pedro.ramirez@credinet.com', '5577889900', NULL, NULL, NULL, NULL, NULL, NULL, NULL),
-(8, 'asociado_norte', '$2b$12$aSMdt0Kd8I2lrCIvSNbxx.X5U.BmY9MAZAoPvM/MgK5mXOxQgq0s6', 'User', 'Norte', 'user@norte.com', '5588990011', NULL, NULL, NULL, NULL, NULL, NULL, 2)
+INSERT INTO users (id, username, password_hash, first_name, last_name, email, phone_number, birth_date, curp, associate_id) VALUES
+(1, 'jair', '$2b$12$aSMdt0Kd8I2lrCIvSNbxx.X5U.BmY9MAZAoPvM/MgK5mXOxQgq0s6', 'Jair', 'FC', 'jair@dev.com', '5511223344', '1990-01-15', 'FERJ900115HDFXXX01', NULL),
+(2, 'admin', '$2b$12$aSMdt0Kd8I2lrCIvSNbxx.X5U.BmY9MAZAoPvM/MgK5mXOxQgq0s6', 'Admin', 'Total', 'admin@credinet.com', '5522334455', NULL, NULL, NULL),
+(3, 'asociado_test', '$2b$12$aSMdt0Kd8I2lrCIvSNbxx.X5U.BmY9MAZAoPvM/MgK5mXOxQgq0s6', 'Asociado', 'Prueba', 'asociado@test.com', '5533445566', NULL, NULL, 1),
+(4, 'sofia.vargas', '$2b$12$aSMdt0Kd8I2lrCIvSNbxx.X5U.BmY9MAZAoPvM/MgK5mXOxQgq0s6', 'Sofía', 'Vargas', 'sofia.vargas@email.com', '5544556677', '1985-05-20', 'VARS850520MDFXXX02', NULL),
+(5, 'juan.perez', '$2b$12$aSMdt0Kd8I2lrCIvSNbxx.X5U.BmY9MAZAoPvM/MgK5mXOxQgq0s6', 'Juan', 'Pérez', 'juan.perez@email.com', '5555667788', '1992-11-30', 'PERJ921130HDFXXX03', NULL),
+(6, 'laura.mtz', '$2b$12$aSMdt0Kd8I2lrCIvSNbxx.X5U.BmY9MAZAoPvM/MgK5mXOxQgq0s6', 'Laura', 'Martínez', 'laura.martinez@email.com', '5566778899', NULL, NULL, NULL),
+(7, 'aux.admin', '$2b$12$aSMdt0Kd8I2lrCIvSNbxx.X5U.BmY9MAZAoPvM/MgK5mXOxQgq0s6', 'Pedro', 'Ramírez', 'pedro.ramirez@credinet.com', '5577889900', NULL, NULL, NULL),
+(8, 'asociado_norte', '$2b$12$aSMdt0Kd8I2lrCIvSNbxx.X5U.BmY9MAZAoPvM/MgK5mXOxQgq0s6', 'User', 'Norte', 'user@norte.com', '5588990011', NULL, NULL, 2)
 ON CONFLICT (id) DO NOTHING;
 
 -- Asignar roles a los usuarios
@@ -43,7 +43,14 @@ INSERT INTO user_roles (user_id, role_id) VALUES
 (1, 1), (2, 2), (2, 5), (3, 4), (4, 5), (5, 5), (6, 5), (7, 3), (8, 4)
 ON CONFLICT (user_id, role_id) DO NOTHING;
 
--- 3. Poblar tablas dependientes
+-- 3. Poblar la nueva tabla de direcciones
+INSERT INTO addresses (user_id, street, colony, zip_code, municipality, state) VALUES
+(1, 'Calle Falsa 123', 'Centro', '06000', 'Cuauhtémoc', 'Ciudad de México'),
+(4, 'Av. Siempre Viva 742', 'Springfield', '90210', 'Springfield', 'California'),
+(5, 'Calle del Sol 45', 'Roma Norte', '06700', 'Cuauhtémoc', 'Ciudad de México')
+ON CONFLICT (user_id) DO NOTHING;
+
+-- 4. Poblar tablas dependientes
 INSERT INTO loans (id, user_id, associate_id, amount, interest_rate, term_months, status, commission_rate) VALUES
 (1, 5, 1, 5000.00, 15.5, 12, 'active', 5.5),
 (2, 4, 2, 10000.00, 12.0, 24, 'active', 4.0),
@@ -116,7 +123,7 @@ FROM generate_series(8, 57) AS i
 ON CONFLICT (id) DO NOTHING;
 
 
--- 4. Reiniciar secuencias para evitar conflictos con futuras inserciones
+-- 5. Reiniciar secuencias para evitar conflictos con futuras inserciones
 -- Se ejecuta después de todas las inserciones para asegurar que los IDs no colisionen
 SELECT setval('users_id_seq', (SELECT MAX(id) FROM users));
 SELECT setval('associates_id_seq', (SELECT MAX(id) FROM associates));
@@ -125,3 +132,4 @@ SELECT setval('roles_id_seq', (SELECT MAX(id) FROM roles));
 SELECT setval('loans_id_seq', (SELECT MAX(id) FROM loans));
 SELECT setval('payments_id_seq', (SELECT MAX(id) FROM payments));
 SELECT setval('beneficiaries_id_seq', (SELECT MAX(id) FROM beneficiaries));
+SELECT setval('addresses_id_seq', (SELECT MAX(id) FROM addresses));

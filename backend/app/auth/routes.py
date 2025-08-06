@@ -1,6 +1,7 @@
 from fastapi import APIRouter, HTTPException, Depends, status
 from fastapi.security import OAuth2PasswordRequestForm
 import asyncpg
+import json
 from typing import List
 
 from app.auth.schemas import UserCreate, UserResponse, Token, UserUpdate, PaginatedUserResponse, UserInDB
@@ -23,16 +24,32 @@ async def register_user(
         try:
             new_user_record = await conn.fetchrow(
                 """
-                INSERT INTO users (username, password_hash, first_name, last_name, email, phone_number, associate_id, birth_date, curp)
-                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-                RETURNING id, username, first_name, last_name, email, phone_number, associate_id, updated_at, birth_date, curp, profile_picture_url, address_street, address_ext_num, address_int_num, address_colonia, address_zip_code, address_state
+                INSERT INTO users (username, password_hash, first_name, last_name, email, phone_number, associate_id, birth_date, curp, profile_picture_url)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+                RETURNING id, username, first_name, last_name, email, phone_number, associate_id, updated_at, birth_date, curp, profile_picture_url
                 """,
                 user_data.username, hashed_password,
                 user_data.first_name, user_data.last_name, user_data.email, user_data.phone_number,
-                user_data.associate_id, user_data.birth_date, user_data.curp
+                user_data.associate_id, user_data.birth_date, user_data.curp, user_data.profile_picture_url
             )
 
-            user_dict = dict(new_user_record) # Initialize user_dict here
+            user_dict = dict(new_user_record)
+
+            if user_data.address:
+                await conn.execute(
+                    """
+                    INSERT INTO addresses (user_id, street, external_number, internal_number, colony, municipality, state, zip_code)
+                    VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+                    """,
+                    new_user_record['id'],
+                    user_data.address.street,
+                    user_data.address.external_number,
+                    user_data.address.internal_number,
+                    user_data.address.colony,
+                    user_data.address.municipality,
+                    user_data.address.state,
+                    user_data.address.zip_code
+                )
 
             role_ids_records = await conn.fetch("SELECT id FROM roles WHERE name = ANY($1::text[])", user_data.roles)
             if len(role_ids_records) != len(user_data.roles):
@@ -42,7 +59,6 @@ async def register_user(
             for role_id in role_ids:
                 await conn.execute("INSERT INTO user_roles (user_id, role_id) VALUES ($1, $2)", new_user_record['id'], role_id)
 
-            # Si se proporcionan datos del beneficiario, crearlo.
             if user_data.beneficiary:
                 await conn.execute(
                     """
@@ -55,9 +71,7 @@ async def register_user(
                     user_data.beneficiary.phone_number
                 )
 
-            # Si se proporcionan datos del asociado, crearlo y vincularlo al usuario
             if user_data.associate_data:
-                # Generar el nombre del asociado a partir del nombre y apellido del usuario
                 associate_name = f"{user_data.first_name} {user_data.last_name}"
                 new_associate_record = await conn.fetchrow(
                     """
@@ -71,13 +85,11 @@ async def register_user(
                     user_data.associate_data.contact_email or user_data.email,
                     user_data.associate_data.default_commission_rate
                 )
-                # Actualizar el usuario recién creado con el associate_id
                 await conn.execute(
                     "UPDATE users SET associate_id = $1 WHERE id = $2",
                     new_associate_record['id'],
                     new_user_record['id']
                 )
-                # Actualizar el user_dict para que la respuesta incluya el associate_id
                 user_dict['associate_id'] = new_associate_record['id']
 
         except asyncpg.exceptions.UniqueViolationError as e:
@@ -92,6 +104,11 @@ async def register_user(
             raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=f"Error de unicidad no manejado: {e.constraint_name}")
 
     user_dict['roles'] = user_data.roles
+    address_record = await conn.fetchrow("SELECT * FROM addresses WHERE user_id = $1", user_dict['id'])
+    user_dict['address'] = dict(address_record) if address_record else None
+    beneficiaries_records = await conn.fetch("SELECT * FROM beneficiaries WHERE user_id = $1", user_dict['id'])
+    user_dict['beneficiaries'] = [dict(rec) for rec in beneficiaries_records]
+
     return UserResponse.model_validate(user_dict)
 
 
@@ -112,8 +129,12 @@ async def login_for_access_token(
     return {"access_token": access_token, "token_type": "bearer"}
 
 @router.get("/me", response_model=UserResponse)
-async def read_users_me(current_user: UserInDB = Depends(get_current_user)):
+async def read_users_me(current_user: UserInDB = Depends(get_current_user), conn: asyncpg.Connection = Depends(get_db)):
     user_dict = current_user.model_dump()
+    address_record = await conn.fetchrow("SELECT * FROM addresses WHERE user_id = $1", current_user.id)
+    user_dict['address'] = dict(address_record) if address_record else None
+    beneficiaries_records = await conn.fetch("SELECT * FROM beneficiaries WHERE user_id = $1", current_user.id)
+    user_dict['beneficiaries'] = [dict(rec) for rec in beneficiaries_records]
     return UserResponse.model_validate(user_dict)
 
 @router.get("/me/dashboard", response_model=ClientDashboardResponse)
@@ -155,11 +176,11 @@ async def read_users(
 
     if role:
         params.append(role)
-        where_clauses.append(f"id IN (SELECT user_id FROM user_roles ur JOIN roles r ON ur.role_id = r.id WHERE r.name = ${len(params)})")
+        where_clauses.append(f"u.id IN (SELECT user_id FROM user_roles ur JOIN roles r ON ur.role_id = r.id WHERE r.name = ${len(params)})")
 
     if search:
         params.append(f"%{search}%")
-        search_fields = ["username", "first_name", "last_name", "email", "phone_number"]
+        search_fields = ["u.username", "u.first_name", "u.last_name", "u.email", "u.phone_number"]
         search_conditions = " OR ".join([f"{field} ILIKE ${len(params)}" for field in search_fields])
         where_clauses.append(f"({search_conditions})")
 
@@ -167,13 +188,16 @@ async def read_users(
     if where_clauses:
         where_sql = " WHERE " + " AND ".join(where_clauses)
 
-    base_query = f"FROM users{where_sql}"
-    count_query = "SELECT COUNT(id) " + base_query
-    data_query = "SELECT * " + base_query
-
+    base_query = f"FROM users u{where_sql}"
+    count_query = "SELECT COUNT(u.id) " + base_query
+    
     total_records = await conn.fetchval(count_query, *params)
     
-    data_query += f" ORDER BY id LIMIT ${len(params) + 1} OFFSET ${len(params) + 2}"
+    data_query = f"""SELECT u.*, (SELECT row_to_json(a.*) FROM addresses a WHERE a.user_id = u.id) as address 
+                     FROM users u 
+                     {where_sql} 
+                     ORDER BY u.id 
+                     LIMIT ${len(params) + 1} OFFSET ${len(params) + 2}"""
     params.extend([limit, offset])
     
     user_records = await conn.fetch(data_query, *params)
@@ -182,6 +206,14 @@ async def read_users(
     for user_record in user_records:
         user_dict = dict(user_record)
         user_dict['roles'] = await get_user_roles(conn, user_dict['id'])
+        if user_record['address']:
+            user_dict['address'] = json.loads(user_record['address'])
+        else:
+            user_dict['address'] = None
+        
+        beneficiaries_records = await conn.fetch("SELECT * FROM beneficiaries WHERE user_id = $1", user_dict['id'])
+        user_dict['beneficiaries'] = [dict(rec) for rec in beneficiaries_records]
+        
         items.append(UserResponse.model_validate(user_dict))
 
     return {
@@ -198,10 +230,21 @@ async def read_user(
     conn: asyncpg.Connection = Depends(get_db),
     current_user: UserInDB = Depends(require_roles(["administrador", "desarrollador"]))
 ):
-    user_record = await conn.fetchrow("SELECT * FROM users WHERE id = $1", user_id)
+    query = """SELECT u.*, (SELECT row_to_json(a.*) FROM addresses a WHERE a.user_id = u.id) as address 
+             FROM users u 
+             WHERE u.id = $1"""
+    user_record = await conn.fetchrow(query, user_id)
     if not user_record:
         raise HTTPException(status_code=404, detail="Usuario no encontrado")
     
     user_dict = dict(user_record)
     user_dict['roles'] = await get_user_roles(conn, user_dict['id'])
+    if user_record['address']:
+        user_dict['address'] = json.loads(user_record['address'])
+    else:
+        user_dict['address'] = None
+        
+    beneficiaries_records = await conn.fetch("SELECT * FROM beneficiaries WHERE user_id = $1", user_id)
+    user_dict['beneficiaries'] = [dict(rec) for rec in beneficiaries_records]
+    
     return UserResponse.model_validate(user_dict)

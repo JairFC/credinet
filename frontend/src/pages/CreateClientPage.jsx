@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import ReactDOM from 'react-dom';
 import { Link, useNavigate } from 'react-router-dom';
@@ -114,7 +113,7 @@ const CreateClientPage = () => {
     email: '', phone_number: '', birth_date: '',
     gender: 'HOMBRE', state_of_birth: 'CHIHUAHUA', curp: '',
     address_zip_code: '', address_state: '', address_municipality: '',
-    address_colonia: '', address_street: '', address_ext_num: ''
+    address_colonia: '', address_street: '', address_ext_num: '', address_int_num: ''
   });
   const [beneficiaryData, setBeneficiaryData] = useState({ full_name: '', relationship: '', phone_number: '' });
   const [formErrors, setFormErrors] = useState({});
@@ -376,15 +375,26 @@ const CreateClientPage = () => {
 
     try {
       const userData = {
-        ...formData,
+        username: formData.username,
+        password: formData.password,
+        first_name: formData.first_name,
         last_name: `${formData.paternal_last_name} ${formData.maternal_last_name}`.trim(),
-        roles: ['cliente'],
         email: formData.email || null,
+        phone_number: formData.phone_number,
+        birth_date: formData.birth_date,
+        curp: formData.curp,
+        roles: ['cliente'],
         beneficiary: beneficiaryData.full_name ? beneficiaryData : null,
+        address: {
+          street: formData.address_street,
+          external_number: formData.address_ext_num,
+          internal_number: formData.address_int_num,
+          colony: formData.address_colonia,
+          municipality: formData.address_municipality,
+          state: formData.address_state,
+          zip_code: formData.address_zip_code,
+        }
       };
-      delete userData.paternal_last_name;
-      delete userData.maternal_last_name;
-      delete userData.confirmPassword;
 
       await apiClient.post('/auth/users', userData);
       setInfoModalState({ isOpen: true, message: '¡Cliente registrado con éxito! Redirigiendo...' });
@@ -572,6 +582,10 @@ const CreateClientPage = () => {
           <div className="form-group">
             <label>Número Exterior</label>
             <input type="text" name="address_ext_num" value={formData.address_ext_num} onChange={handleChange} />
+          </div>
+          <div className="form-group">
+            <label>Número Interior</label>
+            <input type="text" name="address_int_num" value={formData.address_int_num} onChange={handleChange} />
           </div>
         </CollapsibleSection>
 

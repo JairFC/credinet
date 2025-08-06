@@ -11,6 +11,7 @@ import UsersPage from './pages/UsersPage';
 import CreateUserPage from './pages/CreateUserPage';
 import ClientsViewPage from './pages/ClientsViewPage';
 import CreateClientPage from './pages/CreateClientPage'; // Importar la nueva página
+import ClientDetailsPage from './pages/ClientDetailsPage';
 import UserLoansPage from './pages/UserLoansPage';
 import LoanDetailsPage from './pages/LoanDetailsPage';
 import LoansPage from './pages/LoansPage';
@@ -37,7 +38,7 @@ function App() {
               <Route path="/users/new" element={<ProtectedRoute><CreateUserPage /></ProtectedRoute>} />
               <Route path="/clients" element={<ProtectedRoute><ClientsViewPage /></ProtectedRoute>} />
               <Route path="/clients/new" element={<ProtectedRoute><CreateClientPage /></ProtectedRoute>} /> {/* Añadir la nueva ruta */}
-              <Route path="/clients/details/:id" element={<ProtectedRoute><ClientDetailsPage /></ProtectedRoute>} />
+              <Route path="/clients/:id" element={<ProtectedRoute><ClientDetailsPage /></ProtectedRoute>} />
               <Route path="/users/:userId/loans" element={<ProtectedRoute><UserLoansPage /></ProtectedRoute>} />
               <Route path="/users/:userId/loans" element={<ProtectedRoute><UserLoansPage /></ProtectedRoute>} />
               <Route path="/loans" element={<ProtectedRoute><LoansPage /></ProtectedRoute>} />

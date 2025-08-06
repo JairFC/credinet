@@ -47,13 +47,21 @@ CREATE TABLE IF NOT EXISTS users (
     birth_date DATE,
     curp VARCHAR(18) UNIQUE,
     profile_picture_url VARCHAR(255),
-    address_street VARCHAR(255),
-    address_ext_num VARCHAR(20),
-    address_int_num VARCHAR(20),
-    address_colonia VARCHAR(100),
-    address_zip_code VARCHAR(10),
-    address_state VARCHAR(50),
     associate_id INTEGER REFERENCES associates(id) ON DELETE SET NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS addresses (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER NOT NULL UNIQUE REFERENCES users(id) ON DELETE CASCADE,
+    street VARCHAR(255),
+    external_number VARCHAR(20),
+    internal_number VARCHAR(20),
+    colony VARCHAR(100),
+    municipality VARCHAR(100),
+    state VARCHAR(50),
+    zip_code VARCHAR(10),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
@@ -102,6 +110,7 @@ CREATE TABLE IF NOT EXISTS payments (
 -- =============================================================================
 CREATE TRIGGER update_associates_updated_at BEFORE UPDATE ON associates FOR EACH ROW EXECUTE PROCEDURE update_updated_at_column();
 CREATE TRIGGER update_users_updated_at BEFORE UPDATE ON users FOR EACH ROW EXECUTE PROCEDURE update_updated_at_column();
+CREATE TRIGGER update_addresses_updated_at BEFORE UPDATE ON addresses FOR EACH ROW EXECUTE PROCEDURE update_updated_at_column();
 CREATE TRIGGER update_beneficiaries_updated_at BEFORE UPDATE ON beneficiaries FOR EACH ROW EXECUTE PROCEDURE update_updated_at_column();
 CREATE TRIGGER update_loans_updated_at BEFORE UPDATE ON loans FOR EACH ROW EXECUTE PROCEDURE update_updated_at_column();
 CREATE TRIGGER update_payments_updated_at BEFORE UPDATE ON payments FOR EACH ROW EXECUTE PROCEDURE update_updated_at_column();

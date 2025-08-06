@@ -1,84 +1,157 @@
-/* frontend/src/styles/overrides.css */
-/* Este archivo contiene anulaciones específicas para los estilos de librerías de terceros. */
-/* Se carga al final para asegurar que tenga la máxima prioridad sin usar !important. */
-
-/* --- Anulaciones para React Datepicker --- */
-
-/* Asegura que el contenedor del Datepicker ocupe todo el ancho disponible en un form-group. */
-.react-datepicker-wrapper {
-  width: 100%;
+/* Estilos para las tarjetas en la página de detalles del cliente */
+.card {
+  background-color: #f9fafb; /* Un gris muy claro */
+  border: 1px solid #e5e7eb; /* Un borde sutil */
+  border-radius: 0.5rem; /* Bordes redondeados */
+  padding: 1.5rem; /* Espaciado interno */
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06); /* Sombra suave */
 }
 
-/* Ajustes en el encabezado para alinear correctamente los menús desplegables y las flechas. */
-.react-datepicker__header {
-  padding-top: 8px;
-  background-color: var(--color-surface-accent);
-  border-bottom: 1px solid var(--color-border);
+.card-header {
+  font-size: 1.25rem; /* Tamaño de fuente más grande para el encabezado */
+  font-weight: 600; /* Un poco más de peso en la fuente */
+  border-bottom: 1px solid #e5e7eb; /* Línea divisoria */
+  padding-bottom: 0.75rem; /* Espaciado debajo del encabezado */
+  margin-bottom: 1rem; /* Espaciado entre el encabezado y el cuerpo */
 }
 
-.react-datepicker__header__dropdown {
-  display: flex;
-  justify-content: center;
-  gap: 10px;
+.card-body p {
+  margin-bottom: 0.5rem; /* Espaciado entre párrafos */
 }
 
-.react-datepicker__navigation {
-  top: 12px;
+.card-body p strong {
+  color: #374151; /* Un color de texto más oscuro para el texto en negrita */
 }
 
-.react-datepicker__navigation--previous {
-  left: 10px;
-}
-
-.react-datepicker__navigation--next {
-  right: 10px;
-}
-
-.react-datepicker__month-read-view--down-arrow,
-.react-datepicker__year-read-view--down-arrow {
-  top: 5px;
-}
-
-.react-datepicker__current-month {
-  flex-grow: 1;
-  text-align: center;
-  color: var(--color-text-primary);
-}
-
-.react-datepicker__header__dropdown.react-datepicker__header__dropdown--select {
-  flex-grow: 1;
-  justify-content: space-around;
-}
-
-/* Estilos para los días y el popover en general para que coincidan con el tema */
-.react-datepicker {
-  font-family: inherit;
-  background-color: var(--color-surface);
-  border: 1px solid var(--color-border);
-  color: var(--color-text-primary);
-}
-
-.react-datepicker__day-name,
-.react-datepicker__day,
-.react-datepicker__time-name {
-  color: var(--color-text-primary);
-}
-
-.react-datepicker__day:hover {
-  background-color: var(--color-surface-accent);
-}
-
-.react-datepicker__day--selected,
-.react-datepicker__day--keyboard-selected {
-  background-color: var(--color-primary);
+/* Estilos para los botones */
+.button-primary {
+  background-color: #3b82f6; /* Azul */
   color: white;
+  padding: 0.75rem 1.5rem;
+  border-radius: 0.375rem;
+  font-weight: 600;
+  transition: background-color 0.2s;
 }
 
-.react-datepicker__day--disabled {
-  color: var(--color-text-secondary);
-  opacity: 0.5;
+.button-primary:hover {
+  background-color: #2563eb; /* Un azul más oscuro al pasar el ratón */
 }
 
-.react-datepicker__triangle {
-  display: none; /* Oculta el triángulo que a menudo no encaja con los diseños modernos */
+/* Clases de utilidad de Tailwind CSS (simuladas) */
+.container {
+  max-width: 1200px;
+}
+
+.mx-auto {
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.p-4 {
+  padding: 1rem;
+}
+
+.p-6 {
+  padding: 1.5rem;
+}
+
+.mb-4 {
+  margin-bottom: 1rem;
+}
+
+.mb-6 {
+  margin-bottom: 1.5rem;
+}
+
+.mt-6 {
+  margin-top: 1.5rem;
+}
+
+.mr-6 {
+  margin-right: 1.5rem;
+}
+
+.inline-block {
+  display: inline-block;
+}
+
+.flex {
+  display: flex;
+}
+
+.items-center {
+  align-items: center;
+}
+
+.text-center {
+  text-align: center;
+}
+
+.text-right {
+  text-align: right;
+}
+
+.text-red-500 {
+  color: #ef4444;
+}
+
+.text-gray-600 {
+  color: #4b5563;
+}
+
+.text-3xl {
+  font-size: 1.875rem;
+}
+
+.font-bold {
+  font-weight: 700;
+}
+
+.bg-white {
+  background-color: #ffffff;
+}
+
+.shadow-lg {
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+}
+
+.rounded-lg {
+  border-radius: 0.5rem;
+}
+
+.rounded-full {
+  border-radius: 9999px;
+}
+
+.w-24 {
+  width: 6rem;
+}
+
+.h-24 {
+  height: 6rem;
+}
+
+.object-cover {
+  object-fit: cover;
+}
+
+.grid {
+  display: grid;
+}
+
+.grid-cols-1 {
+  grid-template-columns: repeat(1, minmax(0, 1fr));
+}
+
+.gap-6 {
+  gap: 1.5rem;
+}
+
+@media (min-width: 768px) {
+  .md\:grid-cols-2 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .md\:col-span-2 {
+    grid-column: span 2 / span 2;
+  }
 }
