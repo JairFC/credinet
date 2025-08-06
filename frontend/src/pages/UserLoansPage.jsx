@@ -1,13 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import apiClient from '../services/api';
-import './ClientsPage.css'; // Reutilizamos los estilos
 
 const UserLoansPage = () => {
   const { userId } = useParams();
   const [user, setUser] = useState(null);
   const [loans, setLoans] = useState([]);
-  const [summary, setSummary] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -15,15 +13,13 @@ const UserLoansPage = () => {
     const fetchData = async () => {
       try {
         setLoading(true);
-        const [userRes, loansRes, summaryRes] = await Promise.all([
+        const [userRes, loansRes] = await Promise.all([
           apiClient.get(`/auth/users/${userId}`),
           apiClient.get(`/loans/?user_id=${userId}`),
-          apiClient.get(`/loans/users/${userId}/summary`),
         ]);
         
         setUser(userRes.data);
         setLoans(loansRes.data);
-        setSummary(summaryRes.data);
 
       } catch (err) {
         setError('No se pudieron cargar los datos.');
@@ -36,13 +32,24 @@ const UserLoansPage = () => {
     fetchData();
   }, [userId]);
 
+  const summary = useMemo(() => {
+    if (!loans || loans.length === 0) return null;
+    return loans.reduce((acc, loan) => {
+      acc.total_loans += 1;
+      if (loan.status === 'active') acc.active_loans += 1;
+      acc.total_loaned_amount += parseFloat(loan.amount);
+      acc.total_outstanding_balance += parseFloat(loan.outstanding_balance);
+      return acc;
+    }, { total_loans: 0, active_loans: 0, total_loaned_amount: 0, total_outstanding_balance: 0 });
+  }, [loans]);
+
   if (loading) return <p>Cargando...</p>;
   if (error) return <p style={{ color: 'red' }}>{error}</p>;
 
   return (
     <div className="clients-page">
       <Link to="/users">← Volver a Usuarios</Link>
-      <h1>Préstamos del Usuario: {user?.username}</h1>
+      <h1>Préstamos del Usuario: {user?.username} ({user?.first_name} {user?.last_name})</h1>
 
       {summary && (
         <div className="summary-container">
@@ -56,11 +63,11 @@ const UserLoansPage = () => {
           </div>
           <div className="summary-card">
             <h3>Monto Total Prestado</h3>
-            <p>${summary.total_loaned_amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+            <p>${summary.total_loaned_amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}</p>
           </div>
           <div className="summary-card">
             <h3>Saldo Pendiente Total</h3>
-            <p>${summary.total_outstanding_balance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+            <p>${summary.total_outstanding_balance.toLocaleString('en-US', { minimumFractionDigits: 2 })}</p>
           </div>
         </div>
       )}
@@ -72,10 +79,7 @@ const UserLoansPage = () => {
         <thead>
           <tr>
             <th>ID Préstamo</th>
-            <th>Cliente</th>
             <th>Monto</th>
-            <th>Tasa de Interés</th>
-            <th>Pagos</th>
             <th>Saldo Pendiente</th>
             <th>Estado</th>
             <th>Acciones</th>
@@ -87,14 +91,11 @@ const UserLoansPage = () => {
               <td>
                 <Link to={`/loans/${loan.id}`}>{loan.id}</Link>
               </td>
-              <td>{loan.client_first_name} {loan.client_last_name}</td>
-              <td>${parseFloat(loan.amount).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-              <td>{loan.interest_rate.toFixed(2)}%</td>
-              <td>{loan.payments_made} / {loan.payment_frequency === 'quincenal' ? loan.term_months * 2 : loan.term_months}</td>
-              <td>${parseFloat(loan.outstanding_balance).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-              <td>{loan.status}</td>
+              <td>${parseFloat(loan.amount).toLocaleString('en-US')}</td>
+              <td>${parseFloat(loan.outstanding_balance).toLocaleString('en-US')}</td>
+              <td><span className={`status-badge status-${loan.status}`}>{loan.status}</span></td>
               <td>
-                <Link to={`/loans/${loan.id}/payments`}><button>Ver Pagos</button></Link>
+                <Link to={`/loans/${loan.id}`}><button>Ver Detalles</button></Link>
               </td>
             </tr>
           ))}

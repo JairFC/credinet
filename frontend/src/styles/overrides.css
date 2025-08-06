@@ -1,0 +1,84 @@
+/* frontend/src/styles/overrides.css */
+/* Este archivo contiene anulaciones específicas para los estilos de librerías de terceros. */
+/* Se carga al final para asegurar que tenga la máxima prioridad sin usar !important. */
+
+/* --- Anulaciones para React Datepicker --- */
+
+/* Asegura que el contenedor del Datepicker ocupe todo el ancho disponible en un form-group. */
+.react-datepicker-wrapper {
+  width: 100%;
+}
+
+/* Ajustes en el encabezado para alinear correctamente los menús desplegables y las flechas. */
+.react-datepicker__header {
+  padding-top: 8px;
+  background-color: var(--color-surface-accent);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.react-datepicker__header__dropdown {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+}
+
+.react-datepicker__navigation {
+  top: 12px;
+}
+
+.react-datepicker__navigation--previous {
+  left: 10px;
+}
+
+.react-datepicker__navigation--next {
+  right: 10px;
+}
+
+.react-datepicker__month-read-view--down-arrow,
+.react-datepicker__year-read-view--down-arrow {
+  top: 5px;
+}
+
+.react-datepicker__current-month {
+  flex-grow: 1;
+  text-align: center;
+  color: var(--color-text-primary);
+}
+
+.react-datepicker__header__dropdown.react-datepicker__header__dropdown--select {
+  flex-grow: 1;
+  justify-content: space-around;
+}
+
+/* Estilos para los días y el popover en general para que coincidan con el tema */
+.react-datepicker {
+  font-family: inherit;
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  color: var(--color-text-primary);
+}
+
+.react-datepicker__day-name,
+.react-datepicker__day,
+.react-datepicker__time-name {
+  color: var(--color-text-primary);
+}
+
+.react-datepicker__day:hover {
+  background-color: var(--color-surface-accent);
+}
+
+.react-datepicker__day--selected,
+.react-datepicker__day--keyboard-selected {
+  background-color: var(--color-primary);
+  color: white;
+}
+
+.react-datepicker__day--disabled {
+  color: var(--color-text-secondary);
+  opacity: 0.5;
+}
+
+.react-datepicker__triangle {
+  display: none; /* Oculta el triángulo que a menudo no encaja con los diseños modernos */
+}

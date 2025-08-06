@@ -1,18 +1,18 @@
-import { defineConfig } from 'vite'
-import react from '@vitejs/plugin-react'
+import { defineConfig } from 'vite';
+import react from '@vitejs/plugin-react';
 
-// Dirección del backend para llamadas API si haces fetch desde React
-const BACKEND_URL = 'http://backend:8000'
-
+// https://vitejs.dev/config/
 export default defineConfig({
   plugins: [react()],
   server: {
+    host: true, // Escucha en todas las interfaces de red, necesario para Docker
     port: 5173,
     proxy: {
       '/api': {
-        target: BACKEND_URL,
-        changeOrigin: true
-      }
-    }
-  }
-})
+        target: 'http://backend:8000',
+        changeOrigin: true,
+        secure: false,
+      },
+    },
+  },
+});

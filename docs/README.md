@@ -1,40 +1,39 @@
-# Arquitectura del Proyecto Credinet
+# Bienvenido a la Documentación de Credinet
 
-Credinet es una aplicación web full-stack diseñada para la gestión de préstamos, clientes y asociados. Sigue una arquitectura moderna de tres capas, completamente containerizada con Docker para un desarrollo y despliegue consistentes.
+Este directorio es el "cerebro" del proyecto Credinet. Contiene toda la información necesaria para entender, operar y extender el sistema. Está diseñado para ser la **única fuente de verdad** para todos los colaboradores, ya sean humanos o agentes de IA.
 
-## Componentes Principales
+## Épica Actual: Modernización de Perfiles de Usuario
 
-1.  **Frontend:**
-    *   **Framework:** React (con Vite)
-    *   **Lenguaje:** JavaScript (JSX)
-    *   **Descripción:** Una aplicación de página única (SPA) que consume la API del backend. Es responsable de toda la interfaz de usuario.
+Actualmente, la iniciativa principal del proyecto es la **Modernización de Perfiles de Usuario**. Esto implica la fusión de la antigua tabla `clients` en la tabla `users`, la adición de campos de perfil enriquecidos (dirección, CURP), y la implementación de entidades relacionadas como `beneficiaries` y `associate_levels`. Puedes encontrar más detalles sobre el progreso y los próximos pasos en el [Resumen de Sesión](./session_summary.md).
 
-2.  **Backend:**
-    *   **Framework:** FastAPI
-    *   **Lenguaje:** Python 3.11
-    *   **Descripción:** Una API RESTful que maneja toda la lógica de negocio, la autenticación de usuarios y la comunicación con la base de datos.
+## ¿Qué Buscas? Guía Rápida
 
-3.  **Base de Datos:**
-    *   **Motor:** PostgreSQL 15
-    *   **Descripción:** Base de datos relacional que persiste todos los datos de la aplicación.
+-   **"Quiero entender cómo funciona el negocio (las reglas, los roles, los procesos)."**
+    -   **Empieza aquí:** Lee los documentos en la carpeta `business_logic/` en orden numérico. Son la base de todo.
 
-## Conceptos Clave de la Aplicación
+-   **"Necesito entender la arquitectura técnica (qué tecnología usamos, cómo se conectan las partes)."**
+    -   **Ve a:** La carpeta `system_architecture/`. Encontrarás diagramas, descripciones de los componentes (frontend, backend) y el esquema de la base de datos.
 
-### Módulos de Negocio
+-   **"¿Cómo debo escribir o estructurar el CSS?"**
+    -   **Consulta:** La nueva [Guía de Arquitectura CSS](./guides/05_css_architecture_and_style_guide.md).
 
--   **Autenticación y Roles:** Gestiona el acceso de los usuarios. Ver `ROLES.md` para más detalles.
--   **Asociados (Associates):** Entidades (antes llamadas "Distribuidoras") que originan préstamos.
--   **Clientes (Clients):** Los beneficiarios finales de los préstamos.
--   **Préstamos (Loans):** El núcleo del negocio, gestiona el ciclo de vida de un préstamo.
--   **Pagos (Payments):** Registra los pagos realizados a los préstamos.
+-   **"Quiero empezar a desarrollar o configurar mi entorno."**
+    -   **Sigue la guía:** El directorio `onboarding/` tiene las instrucciones paso a paso. Lee primero `01_developer_setup.md` y luego `02_system_health_check.md` para entender nuestras herramientas de calidad.
 
-### Sistema de Roles y Permisos (RBAC)
+-   **"¿Por qué se tomó una decisión de diseño o arquitectura específica?"**
+    -   **Consulta los registros:** La carpeta `adr/` (Architectural Decision Records) documenta las decisiones importantes y su justificación.
 
-La aplicación utiliza un sistema de Control de Acceso Basado en Roles (RBAC) para gestionar los permisos. Cada usuario tiene un rol asignado que define qué acciones puede realizar. Los roles actuales son:
+-   **"Necesito asumir un rol específico (ej. desarrollador backend)."**
+    -   **Adopta una persona:** La carpeta `personas/` define los perfiles clave del proyecto, sus responsabilidades y las herramientas que utilizan.
 
--   `desarrollador`
--   `administrador`
--   `auxiliar_administrativo`
--   `asociado`
+## Protocolo de Actualización
 
-Para una descripción detallada de los permisos de cada rol, por favor consulta el archivo `docs/ROLES.md`.
+La documentación es código. Cualquier cambio en la funcionalidad o arquitectura **debe** ir acompañado de una actualización en los documentos relevantes.
+
+-   **Cambio en la lógica de negocio:** Actualiza `business_logic/` y crea un `adr/` si la decisión es significativa.
+-   **Cambio en el código (API, DB):** Actualiza `system_architecture/`.
+-   **Añadir una nueva dependencia o cambiar el proceso de setup:** Actualiza `onboarding/`.
+
+## Épica Actual: Refactorización del Sistema de Roles
+
+Actualmente, la iniciativa principal del proyecto es la **Refactorización del Sistema de Roles a un Modelo Puro**. Esto permitirá que los usuarios tengan múltiples roles y mejorará la flexibilidad del sistema de permisos. Puedes encontrar más detalles sobre el progreso y los próximos pasos en el [Resumen de Sesión](./session_summary.md).
