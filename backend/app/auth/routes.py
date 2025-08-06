@@ -191,3 +191,17 @@ async def read_users(
         "limit": limit,
         "pages": (total_records + limit - 1) // limit if limit > 0 else 0
     }
+
+@router.get("/users/{user_id}", response_model=UserResponse)
+async def read_user(
+    user_id: int,
+    conn: asyncpg.Connection = Depends(get_db),
+    current_user: UserInDB = Depends(require_roles(["administrador", "desarrollador"]))
+):
+    user_record = await conn.fetchrow("SELECT * FROM users WHERE id = $1", user_id)
+    if not user_record:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+    
+    user_dict = dict(user_record)
+    user_dict['roles'] = await get_user_roles(conn, user_dict['id'])
+    return UserResponse.model_validate(user_dict)

@@ -37,6 +37,8 @@ export const getUsers = (page = 1, size = 20, role = null, search = '') => {
   return apiClient.get(`/auth/users?${params.toString()}`);
 };
 
+export const getUserDetails = (userId) => apiClient.get(`/auth/users/${userId}`);
+
 export const getAssociates = (page = 1, size = 20, search = '') => {
   const params = new URLSearchParams({ page, size });
   if (search) {
