@@ -100,7 +100,7 @@ const UsersPage = ({ roleFilter = null, pageTitle = "Gestión de Usuarios" }) =>
                   {!roleFilter && <td>{u.role}</td>}
                   <td className="actions-cell">
                     <Link to={`/users/${u.id}/loans`}><button>Préstamos</button></Link>
-                    {canManage && <button style={{ marginLeft: '5px' }}>Editar</button>}
+                    {canManage && <Link to={`/clients/details/${u.id}`}><button style={{ marginLeft: '5px' }}>👁️ Ver Detalles</button></Link>}
                   </td>
                 </tr>
               ))}

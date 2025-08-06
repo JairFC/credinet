@@ -37,6 +37,8 @@ function App() {
               <Route path="/users/new" element={<ProtectedRoute><CreateUserPage /></ProtectedRoute>} />
               <Route path="/clients" element={<ProtectedRoute><ClientsViewPage /></ProtectedRoute>} />
               <Route path="/clients/new" element={<ProtectedRoute><CreateClientPage /></ProtectedRoute>} /> {/* Añadir la nueva ruta */}
+              <Route path="/clients/details/:id" element={<ProtectedRoute><ClientDetailsPage /></ProtectedRoute>} />
+              <Route path="/users/:userId/loans" element={<ProtectedRoute><UserLoansPage /></ProtectedRoute>} />
               <Route path="/users/:userId/loans" element={<ProtectedRoute><UserLoansPage /></ProtectedRoute>} />
               <Route path="/loans" element={<ProtectedRoute><LoansPage /></ProtectedRoute>} />
               <Route path="/loans/new" element={<ProtectedRoute><CreateLoanPage /></ProtectedRoute>} />
