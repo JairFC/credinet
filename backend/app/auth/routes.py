@@ -160,6 +160,122 @@ async def get_client_dashboard(
         recent_payments=[ClientDashboardPayment.model_validate(dict(p)) for p in recent_payments_records]
     )
 
+@router.put("/users/{user_id}", response_model=UserResponse)
+async def update_user(
+    user_id: int,
+    user_data: UserUpdate,
+    current_user: UserInDB = Depends(require_roles(["administrador", "desarrollador"])),
+    conn: asyncpg.Connection = Depends(get_db)
+):
+    # Verificar si el usuario existe
+    existing_user = await conn.fetchrow("SELECT id FROM users WHERE id = $1", user_id)
+    if not existing_user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Usuario no encontrado")
+
+    async with conn.transaction():
+        # Actualizar campos en la tabla users
+        update_fields = []
+        update_params = []
+        param_counter = 1
+
+        if user_data.email is not None:
+            update_fields.append(f"email = ${param_counter}")
+            update_params.append(user_data.email)
+            param_counter += 1
+        if user_data.phone_number is not None:
+            update_fields.append(f"phone_number = ${param_counter}")
+            update_params.append(user_data.phone_number)
+            param_counter += 1
+        if user_data.profile_picture_url is not None:
+            update_fields.append(f"profile_picture_url = ${param_counter}")
+            update_params.append(user_data.profile_picture_url)
+            param_counter += 1
+        if user_data.password is not None:
+            hashed_password = pwd_context.hash(user_data.password)
+            update_fields.append(f"password_hash = ${param_counter}")
+            update_params.append(hashed_password)
+            param_counter += 1
+        if user_data.associate_id is not None:
+            update_fields.append(f"associate_id = ${param_counter}")
+            update_params.append(user_data.associate_id)
+            param_counter += 1
+
+        if update_fields:
+            update_query = f"UPDATE users SET {', '.join(update_fields)} WHERE id = ${param_counter}"
+            update_params.append(user_id)
+            await conn.execute(update_query, *update_params)
+
+        # Actualizar o insertar dirección
+        if user_data.address:
+            existing_address = await conn.fetchrow("SELECT id FROM addresses WHERE user_id = $1", user_id)
+            address_update_fields = []
+            address_update_params = []
+            address_param_counter = 1
+
+            if user_data.address.street is not None:
+                address_update_fields.append(f"street = ${address_param_counter}")
+                address_update_params.append(user_data.address.street)
+                address_param_counter += 1
+            if user_data.address.external_number is not None:
+                address_update_fields.append(f"external_number = ${address_param_counter}")
+                address_update_params.append(user_data.address.external_number)
+                address_param_counter += 1
+            if user_data.address.internal_number is not None:
+                address_update_fields.append(f"internal_number = ${address_param_counter}")
+                address_update_params.append(user_data.address.internal_number)
+                address_param_counter += 1
+            if user_data.address.colony is not None:
+                address_update_fields.append(f"colony = ${address_param_counter}")
+                address_update_params.append(user_data.address.colony)
+                address_param_counter += 1
+            if user_data.address.municipality is not None:
+                address_update_fields.append(f"municipality = ${address_param_counter}")
+                address_update_params.append(user_data.address.municipality)
+                address_param_counter += 1
+            if user_data.address.state is not None:
+                address_update_fields.append(f"state = ${address_param_counter}")
+                address_update_params.append(user_data.address.state)
+                address_param_counter += 1
+            if user_data.address.zip_code is not None:
+                address_update_fields.append(f"zip_code = ${address_param_counter}")
+                address_update_params.append(user_data.address.zip_code)
+                address_param_counter += 1
+
+            if existing_address:
+                if address_update_fields:
+                    address_update_query = f"UPDATE addresses SET {', '.join(address_update_fields)} WHERE user_id = ${address_param_counter}"
+                    address_update_params.append(user_id)
+                    await conn.execute(address_update_query, *address_update_params)
+            else:
+                # Insertar nueva dirección si no existe y se proporcionan datos
+                if address_update_fields: # Solo insertar si hay campos para insertar
+                    insert_fields = [f.split(' = ')[0] for f in address_update_fields]
+                    insert_placeholders = [f'${i+1}' for i in range(len(insert_fields))]
+                    insert_query = f"INSERT INTO addresses (user_id, {', '.join(insert_fields)}) VALUES (${address_param_counter}, {', '.join(insert_placeholders)})"
+                    insert_params = [user_id] + address_update_params
+                    await conn.execute(insert_query, *insert_params)
+
+    # Obtener el usuario actualizado para la respuesta
+    query = """SELECT u.*, (SELECT row_to_json(a.*) FROM addresses a WHERE a.user_id = u.id) as address 
+             FROM users u 
+             WHERE u.id = $1"""
+    updated_user_record = await conn.fetchrow(query, user_id)
+    
+    if not updated_user_record:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Usuario no encontrado después de la actualización.")
+
+    updated_user_dict = dict(updated_user_record)
+    updated_user_dict['roles'] = await get_user_roles(conn, updated_user_dict['id'])
+    if updated_user_record['address']:
+        updated_user_dict['address'] = json.loads(updated_user_record['address'])
+    else:
+        updated_user_dict['address'] = None
+        
+    beneficiaries_records = await conn.fetch("SELECT * FROM beneficiaries WHERE user_id = $1", user_id)
+    updated_user_dict['beneficiaries'] = [dict(rec) for rec in beneficiaries_records]
+    
+    return UserResponse.model_validate(updated_user_dict)
+
 @router.get("/users", response_model=PaginatedUserResponse)
 async def read_users(
     page: int = 1,

@@ -32,13 +32,8 @@ class UserCreate(UserBase):
     address: Optional[AddressCreate] = None
 
 class UserUpdate(BaseModel):
-    username: Optional[str] = None
-    first_name: Optional[str] = None
-    last_name: Optional[str] = None
     email: Optional[EmailStr] = None
     phone_number: Optional[str] = None
-    birth_date: Optional[date] = None
-    curp: Optional[str] = None
     profile_picture_url: Optional[str] = None
     password: Optional[str] = None
     roles: Optional[List[str]] = None

@@ -1,6 +1,7 @@
 # Guía: Flujo de Creación de Clientes
 
-La creación de un nuevo cliente es un proceso unificado y potente, gestionado a través de la página "Crear Nuevo Cliente" en el frontend. Este flujo está diseñado para ser intuitivo, reducir errores y agilizar la captura de datos mediante automatizaciones inteligentes.
+
+La creación de un nuevo cliente es un proceso unificado y automatizado, gestionado a través de la página "Crear Nuevo Cliente" en el frontend. Todo el registro se realiza en un solo paso, sin confirmaciones intermedias, y la asignación de perfil es automática.
 
 ## Interfaz de Usuario: Secciones Colapsables
 

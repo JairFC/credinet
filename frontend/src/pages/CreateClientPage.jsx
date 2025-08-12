@@ -509,7 +509,6 @@ const CreateClientPage = () => {
             <div className="password-input-container">
               <input type={showPassword ? "text" : "password"} name="password" value={formData.password} onChange={handleChange} required />
               <button type="button" onClick={() => setShowPassword(!showPassword)} className="password-toggle-button" title={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}>
-                👁️
               </button>
             </div>
             {formErrors.password && <span className="field-error-message">{formErrors.password}</span>}
@@ -519,7 +518,6 @@ const CreateClientPage = () => {
             <div className="password-input-container">
               <input type={showPassword ? "text" : "password"} name="confirmPassword" value={formData.confirmPassword} onChange={handleChange} required />
               <button type="button" onClick={() => setShowPassword(!showPassword)} className="password-toggle-button" title={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}>
-                👁️
               </button>
             </div>
             {formErrors.confirmPassword && <span className="field-error-message">{formErrors.confirmPassword}</span>}

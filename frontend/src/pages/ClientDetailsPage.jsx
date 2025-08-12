@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { getUserDetails } from '../services/api';
+import EditClientModal from '../components/EditClientModal'; // Importar el modal de edición
 import '../styles/overrides.css'; // Importar los nuevos estilos
 
 const ClientDetailsPage = () => {
@@ -8,24 +9,30 @@ const ClientDetailsPage = () => {
   const [client, setClient] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [showEditModal, setShowEditModal] = useState(false); // Estado para controlar la visibilidad del modal
+
+  const fetchClientDetails = async () => {
+    try {
+      setLoading(true);
+      const response = await getUserDetails(id);
+      setClient(response.data);
+      console.log('Datos del cliente recibidos:', response.data);
+    } catch (err) {
+      setError('No se pudieron cargar los detalles del cliente.');
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchClientDetails = async () => {
-      try {
-        setLoading(true);
-        const response = await getUserDetails(id);
-        setClient(response.data);
-        console.log('Datos del cliente recibidos:', response.data);
-      } catch (err) {
-        setError('No se pudieron cargar los detalles del cliente.');
-        console.error(err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchClientDetails();
   }, [id]);
+
+  const handleUpdateSuccess = () => {
+    setShowEditModal(false); // Cerrar el modal
+    fetchClientDetails(); // Volver a cargar los detalles del cliente para reflejar los cambios
+  };
 
   if (loading) return <p className="text-center">Cargando...</p>;
   if (error) return <p className="text-center text-red-500">{error}</p>;
@@ -33,7 +40,7 @@ const ClientDetailsPage = () => {
 
   const { 
     first_name, last_name, username, email, phone_number, curp, birth_date, 
-    roles, address, beneficiaries, profile_picture_url, associate_id, updated_at
+    roles, address, beneficiaries, profile_picture_url, updated_at
   } = client;
 
   return (
@@ -61,7 +68,6 @@ const ClientDetailsPage = () => {
               <p><strong>CURP:</strong> {curp}</p>
               <p><strong>Fecha de Nacimiento:</strong> {birth_date}</p>
               <p><strong>Roles:</strong> {roles.join(', ')}</p>
-              <p><strong>ID de Asociado:</strong> {associate_id || 'N/A'}</p>
               <p><strong>Última Actualización:</strong> {new Date(updated_at).toLocaleString()}</p>
             </div>
           </div>
@@ -108,11 +114,20 @@ const ClientDetailsPage = () => {
           )}
         </div>
 
-        {/* Aquí irán los botones de acción (Editar, Eliminar, etc.) */}
+        {/* Botón para abrir el modal de edición */}
         <div className="mt-6 text-right">
-          <button className="button-primary">Editar Cliente</button>
+          <button className="button-primary" onClick={() => setShowEditModal(true)}>Editar Cliente</button>
         </div>
       </div>
+
+      {/* Modal de Edición */}
+      {showEditModal && (
+        <EditClientModal 
+          user={client} 
+          onUpdateSuccess={handleUpdateSuccess} 
+          onClose={() => setShowEditModal(false)} 
+        />
+      )}
     </div>
   );
 };
