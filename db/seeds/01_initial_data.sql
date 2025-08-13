@@ -24,7 +24,6 @@ INSERT INTO associates (id, name, level_id, contact_person, contact_email, defau
 (3, 'Crédito Rápido del Sur', 1, 'Beatriz Mendoza', 'beatriz.mendoza@sur.com', 7.0)
 ON CONFLICT (id) DO NOTHING;
 
--- 2. Poblar la tabla de usuarios (sin direcciones)
 -- Contraseña para todos: Sparrow20
 -- Hash: $2b$12$aSMdt0Kd8I2lrCIvSNbxx.X5U.BmY9MAZAoPvM/MgK5mXOxQgq0s6
 INSERT INTO users (id, username, password_hash, first_name, last_name, email, phone_number, birth_date, curp, associate_id) VALUES
@@ -35,19 +34,30 @@ INSERT INTO users (id, username, password_hash, first_name, last_name, email, ph
 (5, 'juan.perez', '$2b$12$aSMdt0Kd8I2lrCIvSNbxx.X5U.BmY9MAZAoPvM/MgK5mXOxQgq0s6', 'Juan', 'Pérez', 'juan.perez@email.com', '5555667788', '1992-11-30', 'PERJ921130HDFXXX03', NULL),
 (6, 'laura.mtz', '$2b$12$aSMdt0Kd8I2lrCIvSNbxx.X5U.BmY9MAZAoPvM/MgK5mXOxQgq0s6', 'Laura', 'Martínez', 'laura.martinez@email.com', '5566778899', NULL, NULL, NULL),
 (7, 'aux.admin', '$2b$12$aSMdt0Kd8I2lrCIvSNbxx.X5U.BmY9MAZAoPvM/MgK5mXOxQgq0s6', 'Pedro', 'Ramírez', 'pedro.ramirez@credinet.com', '5577889900', NULL, NULL, NULL),
-(8, 'asociado_norte', '$2b$12$aSMdt0Kd8I2lrCIvSNbxx.X5U.BmY9MAZAoPvM/MgK5mXOxQgq0s6', 'User', 'Norte', 'user@norte.com', '5588990011', NULL, NULL, 2)
+(8, 'asociado_norte', '$2b$12$aSMdt0Kd8I2lrCIvSNbxx.X5U.BmY9MAZAoPvM/MgK5mXOxQgq0s6', 'User', 'Norte', 'user@norte.com', '5588990011', NULL, NULL, 2),
+(1000, 'aval_test', '$2b$12$aSMdt0Kd8I2lrCIvSNbxx.X5U.BmY9MAZAoPvM/MgK5mXOxQgq0s6', 'María', 'Aval', 'maria.aval@demo.com', '6143618296', '1995-05-25', 'FACJ950525HCHRRR04', NULL)
 ON CONFLICT (id) DO NOTHING;
 
--- Asignar roles a los usuarios
+-- Aval para usuario de pruebas (id=1000)
+-- AVISO: Este registro es validado por el System Health Check (SH) automatizado.
+-- Si cambias el nombre, parentesco o curp aquí, también debes actualizar el test en backend/smoke_test.py
+INSERT INTO guarantors (user_id, full_name, relationship, phone_number, curp)
+VALUES (1000, 'Maria Cruz', 'Madre', '6143618296', 'FACJ950525HCHRRR04');
+
+-- Usuario de pruebas completo para avales (statement independiente)
+INSERT INTO users (id, username, password_hash, first_name, last_name, email, phone_number, birth_date, curp, associate_id) VALUES
+(1000, 'aval_test', '$2b$12$aSMdt0Kd8I2lrCIvSNbxx.X5U.BmY9MAZAoPvM/MgK5mXOxQgq0s6', 'María', 'Aval', 'maria.aval@demo.com', '6143618296', '1995-05-25', 'FACJ950525HCHRRR04', NULL)
+ON CONFLICT (id) DO NOTHING;
+
 INSERT INTO user_roles (user_id, role_id) VALUES
-(1, 1), (2, 2), (2, 5), (3, 4), (4, 5), (5, 5), (6, 5), (7, 3), (8, 4)
+(1, 1), (2, 2), (2, 5), (3, 4), (4, 5), (5, 5), (6, 5), (7, 3), (8, 4), (1000, 5)
 ON CONFLICT (user_id, role_id) DO NOTHING;
 
--- 3. Poblar la nueva tabla de direcciones
 INSERT INTO addresses (user_id, street, colony, zip_code, municipality, state) VALUES
 (1, 'Calle Falsa 123', 'Centro', '06000', 'Cuauhtémoc', 'Ciudad de México'),
 (4, 'Av. Siempre Viva 742', 'Springfield', '90210', 'Springfield', 'California'),
 (5, 'Calle del Sol 45', 'Roma Norte', '06700', 'Cuauhtémoc', 'Ciudad de México')
+(1000, 'Calle Aval 100', 'Centro', '31000', 'Chihuahua', 'Chihuahua')
 ON CONFLICT (user_id) DO NOTHING;
 
 -- 4. Poblar tablas dependientes
@@ -72,6 +82,7 @@ ON CONFLICT (id) DO NOTHING;
 INSERT INTO beneficiaries (id, user_id, full_name, relationship, phone_number) VALUES
 (1, 5, 'Maria Pérez', 'Cónyuge', '5599887766'), (2, 5, 'Roberto Pérez', 'Padre', '5512345678'),
 (3, 4, 'Luis Vargas', 'Hermano', '5587654321')
+(100, 1000, 'Luis Aval', 'Hermano', '6140000001')
 ON CONFLICT (id) DO NOTHING;
 
 -- =============================================================================
@@ -123,8 +134,6 @@ FROM generate_series(8, 57) AS i
 ON CONFLICT (id) DO NOTHING;
 
 
--- 5. Reiniciar secuencias para evitar conflictos con futuras inserciones
--- Se ejecuta después de todas las inserciones para asegurar que los IDs no colisionen
 SELECT setval('users_id_seq', (SELECT MAX(id) FROM users));
 SELECT setval('associates_id_seq', (SELECT MAX(id) FROM associates));
 SELECT setval('associate_levels_id_seq', (SELECT MAX(id) FROM associate_levels));
@@ -133,3 +142,10 @@ SELECT setval('loans_id_seq', (SELECT MAX(id) FROM loans));
 SELECT setval('payments_id_seq', (SELECT MAX(id) FROM payments));
 SELECT setval('beneficiaries_id_seq', (SELECT MAX(id) FROM beneficiaries));
 SELECT setval('addresses_id_seq', (SELECT MAX(id) FROM addresses));
+
+INSERT INTO guarantors (user_id, full_name, relationship, phone_number, curp)
+VALUES
+    (5, 'Pedro Aval', 'Padre', '5512345678', 'AVAP800101HDFLLL02'),
+    (4, 'Laura Aval', 'Hermana', '5523456789', 'AVAL850520MDFLLL03'),
+    (1000, 'Maria Cruz', 'Amiga', '6143618296', 'FACJ950525HCHRRR04');
+ON CONFLICT DO NOTHING;

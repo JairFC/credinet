@@ -27,7 +27,31 @@ PASSWORD = "Sparrow20"
 
 # --- Variables Globales ---
 test_counter = 0
-total_tests = 22 # Actualizado para incluir las nuevas pruebas
+total_tests = 23 # Actualizado para incluir la prueba de aval
+def check_guarantor_for_test_user(token):
+    """
+    Verifica que el usuario de pruebas (id 40, aval_test) tenga aval correcto.
+    """
+    headers = {"Authorization": f"Bearer {token}"}
+    user_id = 1000
+    response = requests.get(f"{API_URL}/auth/users/{user_id}", headers=headers, timeout=10)
+    response.raise_for_status()
+    data = response.json()
+    if "guarantor" not in data:
+        raise ValueError("La respuesta no contiene el campo 'guarantor'")
+    g = data["guarantor"]
+    if g is None:
+        raise ValueError("El campo 'guarantor' es None, pero debería existir para este usuario")
+    if g["full_name"] != "Maria Cruz":
+        raise ValueError(f"Nombre incorrecto: {g['full_name']}")
+    if g["relationship"] != "Madre":
+        raise ValueError(f"Parentesco incorrecto: {g['relationship']}")
+    if g["phone_number"] != "6143618296":
+        raise ValueError(f"Teléfono incorrecto: {g['phone_number']}")
+    if g["curp"] != "FACJ950525HCHRRR04":
+        raise ValueError(f"CURP incorrecta: {g['curp']}")
+    # Si pasa todo:
+    return True
 failed_tests = 0
 admin_token = None
 assoc_token = None
@@ -236,12 +260,18 @@ def main():
     run_test("UTILS: Check Phone (existente)", check_util_endpoint, "/utils/check-phone/5544556677", True)
     run_test("UTILS: Check Zip Code (API externa)", check_zip_code)
 
-    # SECCIÓN 6: FLUJO E2E DE CREACIÓN Y ACCESO
+    # SECCIÓN 6: INTEGRIDAD DE DATOS Y RELACIONES
     logging.info("-" * 60)
-    logging.info("  SECCIÓN 6: FLUJO E2E DE CREACIÓN Y ACCESO")
-    new_user_data = None
+    logging.info("  SECCIÓN 6: INTEGRIDAD DE DATOS Y RELACIONES")
     if admin_token:
-        new_user_data = run_test("E2E: Creación de nuevo cliente", create_new_client, admin_token)
+        run_test("INTEGRIDAD: Usuario de pruebas tiene aval correcto", check_guarantor_for_test_user, admin_token)
+
+        # SECCIÓN 7: FLUJO E2E DE CREACIÓN Y ACCESO
+        logging.info("-" * 60)
+        logging.info("  SECCIÓN 7: FLUJO E2E DE CREACIÓN Y ACCESO")
+        new_user_data = None
+        if admin_token:
+            new_user_data = run_test("E2E: Creación de nuevo cliente", create_new_client, admin_token)
 
     new_user_token = None
     if new_user_data:

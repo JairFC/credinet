@@ -116,6 +116,16 @@ const CreateClientPage = () => {
     address_colonia: '', address_street: '', address_ext_num: '', address_int_num: ''
   });
   const [beneficiaryData, setBeneficiaryData] = useState({ full_name: '', relationship: '', phone_number: '' });
+  // Estado para Aval (Guarantor)
+  const [guarantorData, setGuarantorData] = useState({ full_name: '', relationship: '', phone_number: '', curp: '' });
+  const handleGuarantorChange = (e) => {
+    const { name, value } = e.target;
+    let finalValue = value;
+    if (name === 'phone_number') {
+      finalValue = value.replace(/\D/g, '').slice(0, 10);
+    }
+    setGuarantorData(prev => ({ ...prev, [name]: finalValue }));
+  };
   const [formErrors, setFormErrors] = useState({});
   const [curpError, setCurpError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -385,6 +395,7 @@ const CreateClientPage = () => {
         curp: formData.curp,
         roles: ['cliente'],
         beneficiary: beneficiaryData.full_name ? beneficiaryData : null,
+        guarantor: (guarantorData.full_name || guarantorData.relationship || guarantorData.phone_number || guarantorData.curp) ? guarantorData : null,
         address: {
           street: formData.address_street,
           external_number: formData.address_ext_num,
@@ -599,6 +610,25 @@ const CreateClientPage = () => {
           <div className="form-group">
             <label>Teléfono del Beneficiario</label>
             <input type="text" name="phone_number" value={beneficiaryData.phone_number} onChange={handleBeneficiaryChange} maxLength="10" />
+          </div>
+        </CollapsibleSection>
+
+        <CollapsibleSection title="5. Aval (Opcional)" isOpen={openSection === 'guarantor'} onClick={() => setOpenSection('guarantor')}>
+          <div className="form-group">
+            <label>Nombre Completo del Aval</label>
+            <input type="text" name="full_name" value={guarantorData.full_name} onChange={handleGuarantorChange} />
+          </div>
+          <div className="form-group">
+            <label>Parentesco</label>
+            <input type="text" name="relationship" value={guarantorData.relationship} onChange={handleGuarantorChange} />
+          </div>
+          <div className="form-group">
+            <label>Teléfono del Aval</label>
+            <input type="text" name="phone_number" value={guarantorData.phone_number} onChange={handleGuarantorChange} maxLength="10" />
+          </div>
+          <div className="form-group">
+            <label>CURP del Aval</label>
+            <input type="text" name="curp" value={guarantorData.curp} onChange={handleGuarantorChange} maxLength="18" style={{ textTransform: 'uppercase' }} />
           </div>
         </CollapsibleSection>
 

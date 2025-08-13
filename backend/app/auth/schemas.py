@@ -1,10 +1,12 @@
 from pydantic import BaseModel, ConfigDict, EmailStr, validator
+from app.guarantors.schemas import GuarantorResponse
 import re
 from typing import Optional, List
 from datetime import datetime, date
 from app.beneficiaries.schemas import BeneficiaryCreate, BeneficiaryResponse
 from app.associates.schemas import AssociateCreate
 from app.addresses.schemas import AddressCreate, AddressResponse
+from app.guarantors.schemas import GuarantorCreate
 
 class UserBase(BaseModel):
     username: str
@@ -30,6 +32,7 @@ class UserCreate(UserBase):
     beneficiary: Optional[BeneficiaryCreate] = None
     associate_data: Optional[AssociateCreate] = None
     address: Optional[AddressCreate] = None
+    guarantor: Optional[GuarantorCreate] = None
 
 class UserUpdate(BaseModel):
     email: Optional[EmailStr] = None
@@ -55,7 +58,8 @@ class UserResponse(UserBase):
     updated_at: datetime
     address: Optional[AddressResponse] = None
     beneficiaries: Optional[List[BeneficiaryResponse]] = None
-    model_config = ConfigDict(from_attributes=True)
+    guarantor: Optional[GuarantorResponse] = None
+
 
 class PaginatedUserResponse(BaseModel):
     items: List[UserResponse]

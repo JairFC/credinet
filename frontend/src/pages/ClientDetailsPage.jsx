@@ -40,7 +40,7 @@ const ClientDetailsPage = () => {
 
   const { 
     first_name, last_name, username, email, phone_number, curp, birth_date, 
-    roles, address, beneficiaries, profile_picture_url, updated_at
+    roles, address, beneficiaries, guarantor, profile_picture_url, updated_at
   } = client;
 
   return (
@@ -109,6 +109,19 @@ const ClientDetailsPage = () => {
                     <p><strong>Teléfono:</strong> {ben.phone_number}</p>
                   </div>
                 ))}
+              </div>
+            </div>
+          )}
+
+          {/* Card de Aval */}
+          {guarantor && (
+            <div className="card">
+              <h2 className="card-header">Aval</h2>
+              <div className="card-body">
+                <p><strong>Nombre:</strong> {guarantor.full_name}</p>
+                <p><strong>Parentesco:</strong> {guarantor.relationship}</p>
+                <p><strong>Teléfono:</strong> {guarantor.phone_number}</p>
+                {guarantor.curp && <p><strong>CURP:</strong> {guarantor.curp}</p>}
               </div>
             </div>
           )}

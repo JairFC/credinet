@@ -71,6 +71,20 @@ async def register_user(
                     user_data.beneficiary.phone_number
                 )
 
+            # Inserción de aval (guarantor) si existe
+            if user_data.guarantor:
+                await conn.execute(
+                    """
+                    INSERT INTO guarantors (user_id, full_name, relationship, phone_number, curp)
+                    VALUES ($1, $2, $3, $4, $5)
+                    """,
+                    new_user_record['id'],
+                    user_data.guarantor.full_name,
+                    user_data.guarantor.relationship,
+                    user_data.guarantor.phone_number,
+                    user_data.guarantor.curp
+                )
+
             if user_data.associate_data:
                 associate_name = f"{user_data.first_name} {user_data.last_name}"
                 new_associate_record = await conn.fetchrow(
@@ -326,10 +340,14 @@ async def read_users(
             user_dict['address'] = json.loads(user_record['address'])
         else:
             user_dict['address'] = None
-        
+
         beneficiaries_records = await conn.fetch("SELECT * FROM beneficiaries WHERE user_id = $1", user_dict['id'])
         user_dict['beneficiaries'] = [dict(rec) for rec in beneficiaries_records]
-        
+
+        # Obtener el aval (guarantor) si existe
+        guarantor_record = await conn.fetchrow("SELECT * FROM guarantors WHERE user_id = $1", user_dict['id'])
+        user_dict['guarantor'] = dict(guarantor_record) if guarantor_record else None
+
         items.append(UserResponse.model_validate(user_dict))
 
     return {
@@ -362,5 +380,9 @@ async def read_user(
         
     beneficiaries_records = await conn.fetch("SELECT * FROM beneficiaries WHERE user_id = $1", user_id)
     user_dict['beneficiaries'] = [dict(rec) for rec in beneficiaries_records]
-    
+
+    # Obtener el aval (guarantor) si existe
+    guarantor_record = await conn.fetchrow("SELECT * FROM guarantors WHERE user_id = $1", user_id)
+    user_dict['guarantor'] = dict(guarantor_record) if guarantor_record else None
+
     return UserResponse.model_validate(user_dict)
