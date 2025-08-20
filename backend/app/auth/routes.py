@@ -269,6 +269,44 @@ async def update_user(
                     insert_params = [user_id] + address_update_params
                     await conn.execute(insert_query, *insert_params)
 
+        # Actualizar o insertar aval (guarantor)
+        if user_data.guarantor:
+            existing_guarantor = await conn.fetchrow("SELECT id FROM guarantors WHERE user_id = $1", user_id)
+            guarantor_update_fields = []
+            guarantor_update_params = []
+            guarantor_param_counter = 1
+
+            if user_data.guarantor.full_name is not None:
+                guarantor_update_fields.append(f"full_name = ${guarantor_param_counter}")
+                guarantor_update_params.append(user_data.guarantor.full_name)
+                guarantor_param_counter += 1
+            if user_data.guarantor.relationship is not None:
+                guarantor_update_fields.append(f"relationship = ${guarantor_param_counter}")
+                guarantor_update_params.append(user_data.guarantor.relationship)
+                guarantor_param_counter += 1
+            if user_data.guarantor.phone_number is not None:
+                guarantor_update_fields.append(f"phone_number = ${guarantor_param_counter}")
+                guarantor_update_params.append(user_data.guarantor.phone_number)
+                guarantor_param_counter += 1
+            if user_data.guarantor.curp is not None:
+                guarantor_update_fields.append(f"curp = ${guarantor_param_counter}")
+                guarantor_update_params.append(user_data.guarantor.curp)
+                guarantor_param_counter += 1
+
+            if existing_guarantor:
+                if guarantor_update_fields:
+                    guarantor_update_query = f"UPDATE guarantors SET {', '.join(guarantor_update_fields)} WHERE user_id = ${guarantor_param_counter}"
+                    guarantor_update_params.append(user_id)
+                    await conn.execute(guarantor_update_query, *guarantor_update_params)
+            else:
+                # Insertar nuevo aval si no existe y se proporcionan datos
+                if guarantor_update_fields:
+                    insert_fields = [f.split(' = ')[0] for f in guarantor_update_fields]
+                    insert_placeholders = [f'${i+1}' for i in range(len(insert_fields))]
+                    insert_query = f"INSERT INTO guarantors (user_id, {', '.join(insert_fields)}) VALUES (${guarantor_param_counter}, {', '.join(insert_placeholders)})"
+                    insert_params = [user_id] + guarantor_update_params
+                    await conn.execute(insert_query, *insert_params)
+
     # Obtener el usuario actualizado para la respuesta
     query = """SELECT u.*, (SELECT row_to_json(a.*) FROM addresses a WHERE a.user_id = u.id) as address 
              FROM users u 
@@ -287,6 +325,10 @@ async def update_user(
         
     beneficiaries_records = await conn.fetch("SELECT * FROM beneficiaries WHERE user_id = $1", user_id)
     updated_user_dict['beneficiaries'] = [dict(rec) for rec in beneficiaries_records]
+
+    # Obtener el aval (guarantor) si existe
+    guarantor_record = await conn.fetchrow("SELECT * FROM guarantors WHERE user_id = $1", user_id)
+    updated_user_dict['guarantor'] = dict(guarantor_record) if guarantor_record else None
     
     return UserResponse.model_validate(updated_user_dict)
 

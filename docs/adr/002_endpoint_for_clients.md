@@ -12,10 +12,10 @@ La página de creación de préstamos (`CreateLoanPage.jsx`) y la vista de "Gest
 
 Se ha decidido modificar el endpoint existente `GET /api/auth/users` para que acepte un parámetro de consulta opcional `role`. Así, en vez de crear un endpoint nuevo y específico, se reutiliza el existente para filtrar por rol cuando sea necesario.
 
-La llamada a la API para obtener solo clientes es: `GET /api/auth/users?role=client`.
+La llamada a la API para obtener solo clientes es: `GET /api/auth/users?role=cliente`.
 
 
-En el frontend, la página `ClientsViewPage.jsx` actúa como un contenedor que renderiza el componente `UsersPage.jsx`, pasándole el prop `roleFilter="client"` para lograr la vista de "Gestión de Clientes". Así, se reutiliza el endpoint existente `/api/auth/users` y se filtra desde el backend.
+En el frontend, la página `ClientsViewPage.jsx` actúa como un contenedor que renderiza el componente `UsersPage.jsx`, pasándole el prop `roleFilter="cliente"` para lograr la vista de "Gestión de Clientes". Así, se reutiliza el endpoint existente `/api/auth/users` y se filtra desde el backend.
 
 **Consecuencias:**
 

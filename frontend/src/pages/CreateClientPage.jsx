@@ -145,7 +145,13 @@ const CreateClientPage = () => {
   const [municipios, setMunicipios] = useState([]);
 
   // UI and Navigation state
-  const [openSection, setOpenSection] = useState('personal');
+  const [openSections, setOpenSections] = useState({
+    personal: true,
+    account: false,
+    address: false,
+    beneficiary: false,
+    guarantor: false
+  });
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const navigate = useNavigate();
@@ -370,7 +376,7 @@ const CreateClientPage = () => {
         password: prev.curp,
         confirmPassword: prev.curp
       }));
-      setOpenSection('account'); // Move to the next section
+      setOpenSections(prev => ({ ...prev, account: true })); // Move to the next section
     }
   };
 
@@ -430,7 +436,11 @@ const CreateClientPage = () => {
       <p>Los campos marcados con * son obligatorios.</p>
 
       <form onSubmit={handleSubmit} className="user-form">
-        <CollapsibleSection title="1. Datos Personales y de Identificación" isOpen={openSection === 'personal'} onClick={() => setOpenSection('personal')}>
+        <CollapsibleSection 
+          title="1. Datos Personales y de Identificación" 
+          isOpen={openSections.personal} 
+          onClick={() => setOpenSections(prev => ({ ...prev, personal: !prev.personal }))}
+        >
           <div className="form-group">
             <label>Nombre(s) *</label>
             <input type="text" name="first_name" value={formData.first_name} onChange={handleChange} required />
@@ -509,7 +519,11 @@ const CreateClientPage = () => {
           </div>
         </CollapsibleSection>
 
-        <CollapsibleSection title="2. Datos de la Cuenta y Contacto" isOpen={openSection === 'account'} onClick={() => setOpenSection('account')}>
+        <CollapsibleSection 
+          title="2. Datos de la Cuenta y Contacto" 
+          isOpen={openSections.account} 
+          onClick={() => setOpenSections(prev => ({ ...prev, account: !prev.account }))}
+        >
           <div className="form-group">
             <label>Nombre de Usuario *</label>
             <input type="text" name="username" value={formData.username} onChange={handleChange} required />
@@ -545,7 +559,11 @@ const CreateClientPage = () => {
           </div>
         </CollapsibleSection>
 
-        <CollapsibleSection title="3. Dirección" isOpen={openSection === 'address'} onClick={() => setOpenSection('address')}>
+        <CollapsibleSection 
+          title="3. Dirección" 
+          isOpen={openSections.address} 
+          onClick={() => setOpenSections(prev => ({ ...prev, address: !prev.address }))}
+        >
           <div className="form-group">
             <label>Código Postal</label>
             <input type="text" name="address_zip_code" value={formData.address_zip_code} onChange={handleChange} maxLength="5" />
@@ -598,7 +616,11 @@ const CreateClientPage = () => {
           </div>
         </CollapsibleSection>
 
-        <CollapsibleSection title="4. Beneficiario (Opcional)" isOpen={openSection === 'beneficiary'} onClick={() => setOpenSection('beneficiary')}>
+        <CollapsibleSection 
+          title="4. Beneficiario (Opcional)" 
+          isOpen={openSections.beneficiary} 
+          onClick={() => setOpenSections(prev => ({ ...prev, beneficiary: !prev.beneficiary }))}
+        >
           <div className="form-group">
             <label>Nombre Completo del Beneficiario</label>
             <input type="text" name="full_name" value={beneficiaryData.full_name} onChange={handleBeneficiaryChange} />
@@ -613,7 +635,11 @@ const CreateClientPage = () => {
           </div>
         </CollapsibleSection>
 
-        <CollapsibleSection title="5. Aval (Opcional)" isOpen={openSection === 'guarantor'} onClick={() => setOpenSection('guarantor')}>
+        <CollapsibleSection 
+          title="5. Aval (Opcional)" 
+          isOpen={openSections.guarantor} 
+          onClick={() => setOpenSections(prev => ({ ...prev, guarantor: !prev.guarantor }))}
+        >
           <div className="form-group">
             <label>Nombre Completo del Aval</label>
             <input type="text" name="full_name" value={guarantorData.full_name} onChange={handleGuarantorChange} />

@@ -54,11 +54,13 @@ backend/app/
 
 ### `common/database.py`
 
-- **Propósito**: Gestiona el ciclo de vida de la conexión a la base de datos.
+- **Propósito**: Gestiona el ciclo de vida de la conexión a la base de datos en el contexto de la aplicación asíncrona.
 - **Funcionalidades**:
-  - Crea un "motor" de base de datos (`engine`) usando SQLAlchemy.
-  - Define una `SessionLocal` para crear sesiones de base de datos.
-  - Proporciona una función `get_db` que puede ser usada como una dependencia en los endpoints de FastAPI para inyectar una sesión de base de datos en cada solicitud. Esto asegura que la sesión se cierre correctamente después de cada operación.
+  - Crea y administra un pool de conexiones usando `asyncpg` (o una abstracción similar) en lugar de sesiones de SQLAlchemy.
+  - Expone funciones utilitarias para inicializar el pool en el arranque de la app (por ejemplo `create_db_pool()` o `init_db_pool()`), y cerrarlo en el apagado.
+  - Proporciona una dependencia `get_db` para FastAPI que cede una conexión asíncrona (`asyncpg.Connection`) por solicitud. Los endpoints usan esta conexión con `async with conn.transaction():` cuando necesitan transacciones atómicas.
+
+Nota: El proyecto usa llamadas asíncronas a la base de datos a través de un pool y `asyncpg` (o un adaptador asíncrono) en lugar de la combinación `engine`/`SessionLocal` de SQLAlchemy mostrada en documentación antigua. Revisar `backend/app/common/database.py` para ver la implementación exacta.
 
 ## Flujo de una Solicitud
 

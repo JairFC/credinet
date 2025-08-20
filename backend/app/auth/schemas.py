@@ -42,6 +42,7 @@ class UserUpdate(BaseModel):
     roles: Optional[List[str]] = None
     associate_id: Optional[int] = None
     address: Optional[AddressCreate] = None
+    guarantor: Optional[GuarantorCreate] = None
 
 class UserInDB(UserBase):
     id: int

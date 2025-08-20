@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import ReactDOM from 'react-dom';
 import apiClient from '../services/api';
 import CustomDatePicker from './DatePicker';
+import { generateCurp } from '../utils/curp_generator';
 
 const modalOverlayStyle = {
   position: 'fixed',
@@ -62,6 +63,9 @@ const EditClientModal = ({ user, onUpdateSuccess, onClose }) => {
     address: user.address || {
       street: '', external_number: '', internal_number: '',
       colony: '', municipality: '', state: '', zip_code: '',
+    },
+    guarantor: user.guarantor || {
+      full_name: '', relationship: '', phone_number: '', curp: '',
     },
   };
 
@@ -143,6 +147,7 @@ const EditClientModal = ({ user, onUpdateSuccess, onClose }) => {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
+    
     if (name.startsWith('address.')) {
       const addressField = name.split('.')[1];
       setFormData(prev => ({
@@ -157,6 +162,27 @@ const EditClientModal = ({ user, onUpdateSuccess, onClose }) => {
         setMunicipios(selectedEstado ? selectedEstado.municipios : []);
         setFormData(prev => ({ ...prev, address: { ...prev.address, municipality: '' } }));
       }
+    } else if (name.startsWith('guarantor.')) {
+      const guarantorField = name.split('.')[1];
+      let finalValue = value;
+      
+      // Limpiar teléfono (solo dígitos, máximo 10)
+      if (guarantorField === 'phone_number') {
+        finalValue = value.replace(/\D/g, '').slice(0, 10);
+      }
+      
+      // Convertir CURP a mayúsculas
+      if (guarantorField === 'curp') {
+        finalValue = value.toUpperCase();
+      }
+      
+      setFormData(prev => ({
+        ...prev,
+        guarantor: {
+          ...prev.guarantor,
+          [guarantorField]: finalValue
+        }
+      }));
     } else {
       setFormData(prev => ({ ...prev, [name]: value }));
     }
@@ -190,6 +216,14 @@ const EditClientModal = ({ user, onUpdateSuccess, onClose }) => {
       }
     });
 
+    // Comparar campos de aval
+    const guarantorFields = ['full_name', 'relationship', 'phone_number', 'curp'];
+    guarantorFields.forEach(field => {
+      if (formData.guarantor[field] !== initialFormData.guarantor[field]) {
+        changes.push(`Aval (${field}): de '${initialFormData.guarantor[field] || 'N/A'}' a '${formData.guarantor[field] || 'N/A'}'`);
+      }
+    });
+
     if (changes.length === 0) return "No se detectaron cambios.";
     return "Se realizarán los siguientes cambios:\n" + changes.join("\n");
   };
@@ -220,6 +254,7 @@ const EditClientModal = ({ user, onUpdateSuccess, onClose }) => {
       profile_picture_url: formData.profile_picture_url,
       password: formData.password || undefined,
       address: formData.address.zip_code ? formData.address : undefined,
+      guarantor: (formData.guarantor.full_name || formData.guarantor.relationship || formData.guarantor.phone_number || formData.guarantor.curp) ? formData.guarantor : undefined,
     };
 
     try {
@@ -361,6 +396,87 @@ const EditClientModal = ({ user, onUpdateSuccess, onClose }) => {
               <p>No hay beneficiarios registrados.</p>
             )}
             <button type="button" style={{ marginTop: '10px' }}>Gestionar Beneficiarios</button>
+          </CollapsibleSection>
+
+          {/* Sección de Aval (Editable) */}
+          <CollapsibleSection title="5. Aval" isOpen={openSection === 'guarantor'} onClick={() => setOpenSection('guarantor')}>
+            <div className="form-group">
+              <label>Nombre Completo del Aval:</label>
+              <input 
+                type="text" 
+                name="guarantor.full_name" 
+                value={formData.guarantor.full_name} 
+                onChange={handleChange} 
+              />
+            </div>
+            <div className="form-group">
+              <label>Parentesco:</label>
+              <input 
+                type="text" 
+                name="guarantor.relationship" 
+                value={formData.guarantor.relationship} 
+                onChange={handleChange} 
+              />
+            </div>
+            <div className="form-group">
+              <label>Teléfono del Aval:</label>
+              <input 
+                type="text" 
+                name="guarantor.phone_number" 
+                value={formData.guarantor.phone_number} 
+                onChange={handleChange} 
+                maxLength="10"
+              />
+            </div>
+            <div className="form-group">
+              <label>CURP del Aval:</label>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <input 
+                  type="text" 
+                  name="guarantor.curp" 
+                  value={formData.guarantor.curp} 
+                  onChange={handleChange} 
+                  maxLength="18" 
+                  style={{ textTransform: 'uppercase' }}
+                />
+                <button 
+                  type="button" 
+                  onClick={() => {
+                    if (formData.guarantor.full_name) {
+                      // Generar CURP automática con datos ficticios para el aval
+                      const parts = formData.guarantor.full_name.split(' ');
+                      const nombre = parts[0] || '';
+                      const apellidoPaterno = parts[1] || '';
+                      const apellidoMaterno = parts[2] || '';
+                      
+                      const curp = generateCurp({
+                        nombre,
+                        apellidoPaterno,
+                        apellidoMaterno,
+                        fechaNacimiento: '1980-01-01', // Fecha ficticia
+                        sexo: 'HOMBRE', // Sexo ficticio
+                        estadoNacimiento: 'CHIHUAHUA' // Estado ficticio
+                      });
+                      
+                      setFormData(prev => ({
+                        ...prev,
+                        guarantor: {
+                          ...prev.guarantor,
+                          curp: curp
+                        }
+                      }));
+                    }
+                  }}
+                  disabled={!formData.guarantor.full_name}
+                  title="Genera una CURP automática basada en el nombre del aval"
+                >
+                  Generar CURP
+                </button>
+              </div>
+              <small style={{ color: '#888', fontSize: '0.85em' }}>
+                La CURP se genera automáticamente con datos ficticios. Puedes editarla manualmente.
+              </small>
+            </div>
           </CollapsibleSection>
 
           {error && <p className="error-message">{error}</p>}

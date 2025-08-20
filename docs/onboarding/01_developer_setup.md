@@ -25,6 +25,16 @@ El proyecto está completamente containerizado, lo que simplifica enormemente la
     ```
     -   `--build`: Esta bandera fuerza la reconstrucción de las imágenes de Docker si ha habido cambios en los `Dockerfile` o en los archivos de dependencias (`requirements.txt`, `package.json`). Es buena práctica usarla la primera vez o después de actualizar dependencias.
 
+### Reinicio completo (estado limpio)
+
+Cuando sea necesario garantizar un estado completamente limpio (por ejemplo, después de cambiar `init.sql`, seed data, o cuando quieras reiniciar la base de datos), usa el comando que elimina volúmenes y fuerza la reconstrucción:
+
+```bash
+docker compose down -v && docker compose up --build -d
+```
+
+Este comando elimina los volúmenes asociados (por ejemplo el volumen de la base de datos) y recrea los contenedores con una build fresca. Úsalo con precaución porque borra los datos persistidos en los volúmenes.
+
 3.  **¡Listo!** Una vez que los contenedores se hayan construido y levantado, la aplicación estará disponible en las siguientes URLs:
 
     -   **Frontend (Aplicación React):** [http://localhost:5174](http://localhost:5174)
