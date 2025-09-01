@@ -26,9 +26,9 @@ const CurpModal = ({ modalState, onConfirm, onCancel, onCurpChange, onCloseResul
           <>
             <h2>Verificar CURP</h2>
             <p>Por favor, confirma la CURP generada. Si es necesario, corrige la homoclave (los dos últimos caracteres).</p>
-            <input 
-              type="text" 
-              value={modalState.curp} 
+            <input
+              type="text"
+              value={modalState.curp}
               onChange={onCurpChange}
               maxLength="18"
               className="form-control"
@@ -69,9 +69,9 @@ const ErrorModal = ({ errors, onClose }) => {
   return ReactDOM.createPortal(
     <div className="modal-backdrop">
       <div className="modal-content">
-        <h2 style={{color: '#f06565', marginTop: 0}}>❌ Faltan Datos</h2>
+        <h2 style={{ color: '#f06565', marginTop: 0 }}>❌ Faltan Datos</h2>
         <p>Por favor, corrige los siguientes errores antes de continuar:</p>
-        <ul style={{textAlign: 'left', paddingLeft: '20px'}}>
+        <ul style={{ textAlign: 'left', paddingLeft: '20px' }}>
           {errors.map((error, index) => (
             <li key={index}>{error}</li>
           ))}
@@ -91,7 +91,7 @@ const InfoModal = ({ modalState, onClose }) => {
   return ReactDOM.createPortal(
     <div className="modal-backdrop">
       <div className="modal-content">
-        <h2 style={{color: '#51cf66', marginTop: 0}}>✅ Éxito</h2>
+        <h2 style={{ color: '#51cf66', marginTop: 0 }}>✅ Éxito</h2>
         <p>{modalState.message}</p>
         <div className="modal-actions">
           <button onClick={onClose}>Aceptar</button>
@@ -106,6 +106,34 @@ const InfoModal = ({ modalState, onClose }) => {
 // --- Main Page Component ---
 
 const CreateClientPage = () => {
+  // Estado para Aval (Guarantor)
+  const [guarantorData, setGuarantorData] = useState({
+    first_name: '',
+    paternal_last_name: '',
+    maternal_last_name: '',
+    birth_date: '',
+    gender: 'HOMBRE',
+    state_of_birth: 'CHIHUAHUA',
+    curp: '',
+    full_name: '',
+    relationship: '',
+    phone_number: ''
+  });
+  // Autogenerar CURP del aval
+  useEffect(() => {
+    const { first_name, paternal_last_name, maternal_last_name, birth_date, gender, state_of_birth } = guarantorData;
+    if (first_name && paternal_last_name && birth_date && gender && state_of_birth) {
+      const curp = generateCurp({
+        nombre: first_name,
+        apellidoPaterno: paternal_last_name,
+        apellidoMaterno: maternal_last_name,
+        fechaNacimiento: birth_date,
+        sexo: gender,
+        estadoNacimiento: state_of_birth
+      });
+      setGuarantorData(prev => ({ ...prev, curp }));
+    }
+  }, [guarantorData.first_name, guarantorData.paternal_last_name, guarantorData.maternal_last_name, guarantorData.birth_date, guarantorData.gender, guarantorData.state_of_birth]);
   // --- State Management ---
   const [formData, setFormData] = useState({
     username: '', password: '', confirmPassword: '',
@@ -117,7 +145,6 @@ const CreateClientPage = () => {
   });
   const [beneficiaryData, setBeneficiaryData] = useState({ full_name: '', relationship: '', phone_number: '' });
   // Estado para Aval (Guarantor)
-  const [guarantorData, setGuarantorData] = useState({ full_name: '', relationship: '', phone_number: '', curp: '' });
   const handleGuarantorChange = (e) => {
     const { name, value } = e.target;
     let finalValue = value;
@@ -132,7 +159,7 @@ const CreateClientPage = () => {
   const [validationErrors, setValidationErrors] = useState([]);
   const [isPhoneUnique, setIsPhoneUnique] = useState(true);
   const [infoModalState, setInfoModalState] = useState({ isOpen: false, message: '' });
-  
+
   // CURP validation state
   const [isCurpVerified, setIsCurpVerified] = useState(false);
   const [modalState, setModalState] = useState({ isOpen: false, step: 'confirm', curp: '', result: { message: '', type: '' } });
@@ -145,8 +172,9 @@ const CreateClientPage = () => {
   const [municipios, setMunicipios] = useState([]);
 
   // UI and Navigation state
+  // Cada sección se controla de forma independiente (todas inician cerradas)
   const [openSections, setOpenSections] = useState({
-    personal: true,
+    personal: false,
     account: false,
     address: false,
     beneficiary: false,
@@ -229,8 +257,18 @@ const CreateClientPage = () => {
         try {
           const response = await apiClient.get(`/utils/zip-code/${formData.address_zip_code}`);
           const { estado, municipio, colonias } = response.data;
-          setFormData(prev => ({ ...prev, address_state: estado, address_municipality: municipio, address_colonia: '' }));
-          setColoniaSuggestions(colonias);
+
+          // Solo aplicar los datos si no son "DESCONOCIDO"
+          if (estado !== 'DESCONOCIDO' && municipio !== 'DESCONOCIDO') {
+            setFormData(prev => ({ ...prev, address_state: estado, address_municipality: municipio, address_colonia: '' }));
+            setColoniaSuggestions(colonias || []);
+          } else {
+            // Si la respuesta contiene "DESCONOCIDO", tratar como servicio no disponible
+            setAddressError('Código postal no encontrado. Por favor, introduzca los datos manualmente.');
+            setIsApiDown(true);
+            setFormData(prev => ({ ...prev, address_state: '', address_municipality: '', address_colonia: '' }));
+            setColoniaSuggestions([]);
+          }
         } catch (error) {
           setAddressError('Servicio de CP no disponible. Por favor, introduzca los datos manualmente.');
           setIsApiDown(true);
@@ -264,7 +302,7 @@ const CreateClientPage = () => {
             }
           } catch (error) {
             console.error("Error checking username:", error);
-            break; 
+            break;
           }
         }
       }
@@ -313,7 +351,7 @@ const CreateClientPage = () => {
       setFormData(prev => ({ ...prev, address_municipality: '' }));
     }
   };
-  
+
   const handleBeneficiaryChange = (e) => {
     const { name, value } = e.target;
     const finalValue = name === 'phone_number' ? value.replace(/\D/g, '').slice(0, 10) : value;
@@ -349,7 +387,7 @@ const CreateClientPage = () => {
   const handleConfirmCurp = async () => {
     setModalState(prev => ({ ...prev, step: 'loading' }));
     setFormData(prev => ({ ...prev, curp: modalState.curp }));
-    
+
     let result = { message: '', type: '' };
     try {
       const response = await apiClient.get(`/utils/check-curp/${modalState.curp}`);
@@ -390,6 +428,15 @@ const CreateClientPage = () => {
     setError('');
 
     try {
+      // Componer full_name del aval desde las partes si no existe
+      const guarantorToSend = (() => {
+        const parts = [guarantorData.first_name, guarantorData.paternal_last_name, guarantorData.maternal_last_name].filter(p => p && p.trim()).map(p => p.trim());
+        const composed = parts.length ? parts.join(' ') : null;
+        const hasAny = composed || guarantorData.relationship || guarantorData.phone_number || guarantorData.curp;
+        if (!hasAny) return null;
+        return { ...guarantorData, full_name: guarantorData.full_name || composed };
+      })();
+
       const userData = {
         username: formData.username,
         password: formData.password,
@@ -401,7 +448,7 @@ const CreateClientPage = () => {
         curp: formData.curp,
         roles: ['cliente'],
         beneficiary: beneficiaryData.full_name ? beneficiaryData : null,
-        guarantor: (guarantorData.full_name || guarantorData.relationship || guarantorData.phone_number || guarantorData.curp) ? guarantorData : null,
+        guarantor: guarantorToSend,
         address: {
           street: formData.address_street,
           external_number: formData.address_ext_num,
@@ -430,15 +477,15 @@ const CreateClientPage = () => {
       <CurpModal modalState={modalState} onConfirm={handleConfirmCurp} onCancel={handleCancelModal} onCurpChange={handleModalCurpChange} onCloseResult={handleCloseResultModal} />
       <ErrorModal errors={validationErrors} onClose={() => setValidationErrors([])} />
       <InfoModal modalState={infoModalState} onClose={() => setInfoModalState({ isOpen: false, message: '' })} />
-      
+
       <Link to="/clients" className="back-link">← Volver a Clientes</Link>
       <h1>Crear Nuevo Cliente</h1>
       <p>Los campos marcados con * son obligatorios.</p>
 
       <form onSubmit={handleSubmit} className="user-form">
-        <CollapsibleSection 
-          title="1. Datos Personales y de Identificación" 
-          isOpen={openSections.personal} 
+        <CollapsibleSection
+          title="1. Datos Personales y de Identificación"
+          isOpen={openSections.personal}
           onClick={() => setOpenSections(prev => ({ ...prev, personal: !prev.personal }))}
         >
           <div className="form-group">
@@ -455,7 +502,7 @@ const CreateClientPage = () => {
           </div>
           <div className="form-group">
             <label>Fecha de Nacimiento</label>
-            <CustomDatePicker 
+            <CustomDatePicker
               selectedDate={formData.birth_date ? new Date(formData.birth_date) : null}
               onChange={date => {
                 const formattedDate = date ? date.toISOString().split('T')[0] : '';
@@ -473,39 +520,39 @@ const CreateClientPage = () => {
           <div className="form-group">
             <label>Estado de Nacimiento</label>
             <select name="state_of_birth" value={formData.state_of_birth} onChange={handleChange}>
-                <option value="AGUASCALIENTES">AGUASCALIENTES</option>
-                <option value="BAJA CALIFORNIA">BAJA CALIFORNIA</option>
-                <option value="BAJA CALIFORNIA SUR">BAJA CALIFORNIA SUR</option>
-                <option value="CAMPECHE">CAMPECHE</option>
-                <option value="COAHUILA">COAHUILA</option>
-                <option value="COLIMA">COLIMA</option>
-                <option value="CHIAPAS">CHIAPAS</option>
-                <option value="CHIHUAHUA">CHIHUAHUA</option>
-                <option value="DISTRITO FEDERAL">DISTRITO FEDERAL</option>
-                <option value="DURANGO">DURANGO</option>
-                <option value="GUANAJUATO">GUANAJUATO</option>
-                <option value="GUERRERO">GUERRERO</option>
-                <option value="HIDALGO">HIDALGO</option>
-                <option value="JALISCO">JALISCO</option>
-                <option value="MEXICO">MEXICO</option>
-                <option value="MICHOACAN">MICHOACAN</option>
-                <option value="MORELOS">MORELOS</option>
-                <option value="NAYARIT">NAYARIT</option>
-                <option value="NUEVO LEON">NUEVO LEON</option>
-                <option value="OAXACA">OAXACA</option>
-                <option value="PUEBLA">PUEBLA</option>
-                <option value="QUERETARO">QUERETARO</option>
-                <option value="QUINTANA ROO">QUINTANA ROO</option>
-                <option value="SAN LUIS POTOSI">SAN LUIS POTOSI</option>
-                <option value="SINALOA">SINALOA</option>
-                <option value="SONORA">SONORA</option>
-                <option value="TABASCO">TABASCO</option>
-                <option value="TAMAULIPAS">TAMAULIPAS</option>
-                <option value="TLAXCALA">TLAXCALA</option>
-                <option value="VERACRUZ">VERACRUZ</option>
-                <option value="YUCATAN">YUCATAN</option>
-                <option value="ZACATECAS">ZACATECAS</option>
-                <option value="NACIDO EN EL EXTRANJERO">NACIDO EN EL EXTRANJERO</option>
+              <option value="AGUASCALIENTES">AGUASCALIENTES</option>
+              <option value="BAJA CALIFORNIA">BAJA CALIFORNIA</option>
+              <option value="BAJA CALIFORNIA SUR">BAJA CALIFORNIA SUR</option>
+              <option value="CAMPECHE">CAMPECHE</option>
+              <option value="COAHUILA">COAHUILA</option>
+              <option value="COLIMA">COLIMA</option>
+              <option value="CHIAPAS">CHIAPAS</option>
+              <option value="CHIHUAHUA">CHIHUAHUA</option>
+              <option value="DISTRITO FEDERAL">DISTRITO FEDERAL</option>
+              <option value="DURANGO">DURANGO</option>
+              <option value="GUANAJUATO">GUANAJUATO</option>
+              <option value="GUERRERO">GUERRERO</option>
+              <option value="HIDALGO">HIDALGO</option>
+              <option value="JALISCO">JALISCO</option>
+              <option value="MEXICO">MEXICO</option>
+              <option value="MICHOACAN">MICHOACAN</option>
+              <option value="MORELOS">MORELOS</option>
+              <option value="NAYARIT">NAYARIT</option>
+              <option value="NUEVO LEON">NUEVO LEON</option>
+              <option value="OAXACA">OAXACA</option>
+              <option value="PUEBLA">PUEBLA</option>
+              <option value="QUERETARO">QUERETARO</option>
+              <option value="QUINTANA ROO">QUINTANA ROO</option>
+              <option value="SAN LUIS POTOSI">SAN LUIS POTOSI</option>
+              <option value="SINALOA">SINALOA</option>
+              <option value="SONORA">SONORA</option>
+              <option value="TABASCO">TABASCO</option>
+              <option value="TAMAULIPAS">TAMAULIPAS</option>
+              <option value="TLAXCALA">TLAXCALA</option>
+              <option value="VERACRUZ">VERACRUZ</option>
+              <option value="YUCATAN">YUCATAN</option>
+              <option value="ZACATECAS">ZACATECAS</option>
+              <option value="NACIDO EN EL EXTRANJERO">NACIDO EN EL EXTRANJERO</option>
             </select>
           </div>
           <div className="form-group">
@@ -515,13 +562,13 @@ const CreateClientPage = () => {
               <button type="button" onClick={handleVerifyClick}>Verificar</button>
             </div>
             {curpError && <span className="field-error-message" style={{ marginTop: '8px' }}>{curpError}</span>}
-            {isCurpVerified && <span style={{color: '#51cf66', fontSize: '0.9em', fontWeight: 'bold', marginTop: '8px'}}>✅ CURP validada</span>}
+            {isCurpVerified && <span style={{ color: '#51cf66', fontSize: '0.9em', fontWeight: 'bold', marginTop: '8px' }}>✅ CURP validada</span>}
           </div>
         </CollapsibleSection>
 
-        <CollapsibleSection 
-          title="2. Datos de la Cuenta y Contacto" 
-          isOpen={openSections.account} 
+        <CollapsibleSection
+          title="2. Datos de la Cuenta y Contacto"
+          isOpen={openSections.account}
           onClick={() => setOpenSections(prev => ({ ...prev, account: !prev.account }))}
         >
           <div className="form-group">
@@ -559,9 +606,9 @@ const CreateClientPage = () => {
           </div>
         </CollapsibleSection>
 
-        <CollapsibleSection 
-          title="3. Dirección" 
-          isOpen={openSections.address} 
+        <CollapsibleSection
+          title="3. Dirección"
+          isOpen={openSections.address}
           onClick={() => setOpenSections(prev => ({ ...prev, address: !prev.address }))}
         >
           <div className="form-group">
@@ -574,7 +621,7 @@ const CreateClientPage = () => {
             {isApiDown ? (
               <select name="address_state" value={formData.address_state} onChange={handleChange}>
                 <option value="">Seleccione un estado</option>
-                {mexicoData.estados.map(e => <option key={e.nombre} value={e.nombre}>{e.nombre}</option>)} 
+                {mexicoData.estados.map(e => <option key={e.nombre} value={e.nombre}>{e.nombre}</option>)}
               </select>
             ) : (
               <input type="text" name="address_state" value={formData.address_state} readOnly />
@@ -585,7 +632,7 @@ const CreateClientPage = () => {
             {isApiDown ? (
               <select name="address_municipality" value={formData.address_municipality} onChange={handleChange} disabled={!formData.address_state}>
                 <option value="">Seleccione un municipio</option>
-                {municipios.map(m => <option key={m} value={m}>{m}</option>)} 
+                {municipios.map(m => <option key={m} value={m}>{m}</option>)}
               </select>
             ) : (
               <input type="text" name="address_municipality" value={formData.address_municipality} readOnly />
@@ -598,7 +645,7 @@ const CreateClientPage = () => {
             ) : (
               <select name="address_colonia" value={formData.address_colonia} onChange={handleChange}>
                 <option value="">Seleccione una colonia</option>
-                {coloniaSuggestions.map((colonia, index) => <option key={index} value={colonia}>{colonia}</option>)} 
+                {coloniaSuggestions.map((colonia, index) => <option key={index} value={colonia}>{colonia}</option>)}
               </select>
             )}
           </div>
@@ -616,9 +663,9 @@ const CreateClientPage = () => {
           </div>
         </CollapsibleSection>
 
-        <CollapsibleSection 
-          title="4. Beneficiario (Opcional)" 
-          isOpen={openSections.beneficiary} 
+        <CollapsibleSection
+          title="4. Beneficiario (Opcional)"
+          isOpen={openSections.beneficiary}
           onClick={() => setOpenSections(prev => ({ ...prev, beneficiary: !prev.beneficiary }))}
         >
           <div className="form-group">
@@ -635,15 +682,83 @@ const CreateClientPage = () => {
           </div>
         </CollapsibleSection>
 
-        <CollapsibleSection 
-          title="5. Aval (Opcional)" 
-          isOpen={openSections.guarantor} 
+        <CollapsibleSection
+          title="5. Aval (Opcional)"
+          isOpen={openSections.guarantor}
           onClick={() => setOpenSections(prev => ({ ...prev, guarantor: !prev.guarantor }))}
         >
           <div className="form-group">
-            <label>Nombre Completo del Aval</label>
-            <input type="text" name="full_name" value={guarantorData.full_name} onChange={handleGuarantorChange} />
+            <label>Nombre(s) del Aval</label>
+            <input type="text" name="first_name" value={guarantorData.first_name} onChange={handleGuarantorChange} />
           </div>
+          <div className="form-group">
+            <label>Apellido Paterno del Aval</label>
+            <input type="text" name="paternal_last_name" value={guarantorData.paternal_last_name} onChange={handleGuarantorChange} />
+          </div>
+          <div className="form-group">
+            <label>Apellido Materno del Aval</label>
+            <input type="text" name="maternal_last_name" value={guarantorData.maternal_last_name} onChange={handleGuarantorChange} />
+          </div>
+          <div className="form-group">
+            <label>Fecha de Nacimiento del Aval</label>
+            <CustomDatePicker
+              selectedDate={guarantorData.birth_date ? new Date(guarantorData.birth_date) : null}
+              onChange={date => {
+                const formattedDate = date ? date.toISOString().split('T')[0] : '';
+                setGuarantorData(prev => ({ ...prev, birth_date: formattedDate }));
+              }}
+            />
+          </div>
+          <div className="form-group">
+            <label>Género del Aval</label>
+            <select name="gender" value={guarantorData.gender} onChange={handleGuarantorChange}>
+              <option value="HOMBRE">Hombre</option>
+              <option value="MUJER">Mujer</option>
+            </select>
+          </div>
+          <div className="form-group">
+            <label>Estado de Nacimiento del Aval</label>
+            <select name="state_of_birth" value={guarantorData.state_of_birth} onChange={handleGuarantorChange}>
+              <option value="AGUASCALIENTES">AGUASCALIENTES</option>
+              <option value="BAJA CALIFORNIA">BAJA CALIFORNIA</option>
+              <option value="BAJA CALIFORNIA SUR">BAJA CALIFORNIA SUR</option>
+              <option value="CAMPECHE">CAMPECHE</option>
+              <option value="COAHUILA">COAHUILA</option>
+              <option value="COLIMA">COLIMA</option>
+              <option value="CHIAPAS">CHIAPAS</option>
+              <option value="CHIHUAHUA">CHIHUAHUA</option>
+              <option value="DISTRITO FEDERAL">DISTRITO FEDERAL</option>
+              <option value="DURANGO">DURANGO</option>
+              <option value="GUANAJUATO">GUANAJUATO</option>
+              <option value="GUERRERO">GUERRERO</option>
+              <option value="HIDALGO">HIDALGO</option>
+              <option value="JALISCO">JALISCO</option>
+              <option value="MEXICO">MEXICO</option>
+              <option value="MICHOACAN">MICHOACAN</option>
+              <option value="MORELOS">MORELOS</option>
+              <option value="NAYARIT">NAYARIT</option>
+              <option value="NUEVO LEON">NUEVO LEON</option>
+              <option value="OAXACA">OAXACA</option>
+              <option value="PUEBLA">PUEBLA</option>
+              <option value="QUERETARO">QUERETARO</option>
+              <option value="QUINTANA ROO">QUINTANA ROO</option>
+              <option value="SAN LUIS POTOSI">SAN LUIS POTOSI</option>
+              <option value="SINALOA">SINALOA</option>
+              <option value="SONORA">SONORA</option>
+              <option value="TABASCO">TABASCO</option>
+              <option value="TAMAULIPAS">TAMAULIPAS</option>
+              <option value="TLAXCALA">TLAXCALA</option>
+              <option value="VERACRUZ">VERACRUZ</option>
+              <option value="YUCATAN">YUCATAN</option>
+              <option value="ZACATECAS">ZACATECAS</option>
+              <option value="NACIDO EN EL EXTRANJERO">NACIDO EN EL EXTRANJERO</option>
+            </select>
+          </div>
+          <div className="form-group">
+            <label>CURP del Aval</label>
+            <input type="text" name="curp" value={guarantorData.curp} onChange={handleGuarantorChange} maxLength="18" style={{ textTransform: 'uppercase' }} />
+          </div>
+          {/* El campo 'Nombre Completo del Aval' se compone automáticamente desde los campos de nombre y apellidos. */}
           <div className="form-group">
             <label>Parentesco</label>
             <input type="text" name="relationship" value={guarantorData.relationship} onChange={handleGuarantorChange} />
@@ -652,13 +767,13 @@ const CreateClientPage = () => {
             <label>Teléfono del Aval</label>
             <input type="text" name="phone_number" value={guarantorData.phone_number} onChange={handleGuarantorChange} maxLength="10" />
           </div>
-          <div className="form-group">
-            <label>CURP del Aval</label>
-            <input type="text" name="curp" value={guarantorData.curp} onChange={handleGuarantorChange} maxLength="18" style={{ textTransform: 'uppercase' }} />
-          </div>
         </CollapsibleSection>
 
-        {error && <p className="error-message">{error}</p>}
+        {error && (
+          <div className="alert alert-danger">
+            {typeof error === 'string' ? error : 'Error al procesar la solicitud. Por favor, intente nuevamente.'}
+          </div>
+        )}
 
         <div className="modal-actions">
           <button type="submit">Crear Cliente</button>

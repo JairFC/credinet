@@ -167,3 +167,123 @@
 2025-08-12 17:34:51,792,INFO,------------------------------------------------------------
 2025-08-12 17:34:51,792,ERROR,[FAILURE] 1 de 23 chequeos fallaron.
 2025-08-12 17:34:51,792,INFO,============================================================
+2025-08-29 03:43:06,607,INFO,============================================================
+2025-08-29 03:43:06,608,INFO,  INICIANDO SYSTEM HEALTH CHECK (SH) - CREDINET
+2025-08-29 03:43:06,608,INFO,============================================================
+2025-08-29 03:43:08,612,INFO,[PASS] PING: Verificando conectividad del servidor
+2025-08-29 03:43:08,837,INFO,[PASS] AUTH: Login de Administrador
+2025-08-29 03:43:09,037,INFO,[PASS] AUTH: Login de Asociado
+2025-08-29 03:43:09,237,INFO,[PASS] AUTH: Login de Cliente
+2025-08-29 03:43:09,250,INFO,[PASS] RBAC: Admin puede ver lista de Usuarios
+2025-08-29 03:43:09,254,INFO,[PASS] RBAC: Admin puede ver lista de Asociados
+2025-08-29 03:43:09,274,INFO,[PASS] RBAC: Admin puede ver Dashboard Global
+2025-08-29 03:43:09,276,INFO,[PASS] RBAC: Asociado NO PUEDE ver Usuarios
+2025-08-29 03:43:09,289,INFO,[PASS] RBAC: Asociado puede ver su Dashboard
+2025-08-29 03:43:09,291,INFO,[PASS] RBAC: Cliente NO PUEDE ver Usuarios
+2025-08-29 03:43:09,294,INFO,[PASS] RBAC: Cliente NO PUEDE ver Asociados
+2025-08-29 03:43:09,298,INFO,[PASS] RBAC: Cliente puede ver su Dashboard
+2025-08-29 03:43:09,302,INFO,[PASS] LOGIC: Filtro de Usuarios por teléfono funciona
+2025-08-29 03:43:09,306,INFO,[PASS] LOGIC: Filtro de Asociados por contacto funciona
+2025-08-29 03:43:09,310,INFO,[PASS] LOGIC: Filtro de Préstamos por cliente funciona
+2025-08-29 03:43:09,310,INFO,------------------------------------------------------------
+2025-08-29 03:43:09,310,INFO,  SECCIÓN 5: UTILIDADES
+2025-08-29 03:43:09,312,INFO,[PASS] UTILS: Check Username (existente)
+2025-08-29 03:43:09,314,INFO,[PASS] UTILS: Check Username (no existente)
+2025-08-29 03:43:09,316,INFO,[PASS] UTILS: Check CURP (existente)
+2025-08-29 03:43:09,317,INFO,[PASS] UTILS: Check Phone (existente)
+2025-08-29 03:43:09,888,INFO,[PASS] UTILS: Check Zip Code (API externa)
+2025-08-29 03:43:09,888,INFO,------------------------------------------------------------
+2025-08-29 03:43:09,889,INFO,  SECCIÓN 6: INTEGRIDAD DE DATOS Y RELACIONES
+2025-08-29 03:43:09,892,INFO,[PASS] INTEGRIDAD: Usuario de pruebas tiene aval correcto
+2025-08-29 03:43:10,097,ERROR,[FAIL] INTEGRIDAD: Composición de nombre aval (partes). Razón: El campo 'guarantor' es None
+2025-08-29 03:43:10,298,ERROR,[FAIL] INTEGRIDAD: Composición de nombre aval (full_name). Razón: El campo 'guarantor' es None
+2025-08-29 03:43:10,499,ERROR,[FAIL] INTEGRIDAD: Composición de nombre aval (mixto). Razón: El campo 'guarantor' es None
+2025-08-29 03:43:10,499,INFO,------------------------------------------------------------
+2025-08-29 03:43:10,499,INFO,  SECCIÓN 7: FLUJO E2E DE CREACIÓN Y ACCESO
+2025-08-29 03:43:10,700,INFO,[PASS] E2E: Creación de nuevo cliente
+2025-08-29 03:43:10,899,INFO,[PASS] E2E: Login de nuevo cliente
+2025-08-29 03:43:10,901,WARNING,[SKIP] E2E: Creación de préstamo para nuevo cliente. Razón: Endpoint POST /api/loans/ no implementado.
+2025-08-29 03:43:10,901,ERROR,[FAIL] E2E: Creación de préstamo para nuevo cliente. Razón: Resultado de prueba fue False
+2025-08-29 03:43:10,901,INFO,------------------------------------------------------------
+2025-08-29 03:43:10,901,ERROR,[FAILURE] 4 de 26 chequeos fallaron.
+2025-08-29 03:43:10,901,INFO,============================================================
+2025-08-29 03:43:55,053,INFO,============================================================
+2025-08-29 03:43:55,053,INFO,  INICIANDO SYSTEM HEALTH CHECK (SH) - CREDINET
+2025-08-29 03:43:55,053,INFO,============================================================
+2025-08-29 03:43:57,057,INFO,[PASS] PING: Verificando conectividad del servidor
+2025-08-29 03:43:57,279,INFO,[PASS] AUTH: Login de Administrador
+2025-08-29 03:43:57,478,INFO,[PASS] AUTH: Login de Asociado
+2025-08-29 03:43:57,677,INFO,[PASS] AUTH: Login de Cliente
+2025-08-29 03:43:57,689,INFO,[PASS] RBAC: Admin puede ver lista de Usuarios
+2025-08-29 03:43:57,693,INFO,[PASS] RBAC: Admin puede ver lista de Asociados
+2025-08-29 03:43:57,711,INFO,[PASS] RBAC: Admin puede ver Dashboard Global
+2025-08-29 03:43:57,714,INFO,[PASS] RBAC: Asociado NO PUEDE ver Usuarios
+2025-08-29 03:43:57,726,INFO,[PASS] RBAC: Asociado puede ver su Dashboard
+2025-08-29 03:43:57,728,INFO,[PASS] RBAC: Cliente NO PUEDE ver Usuarios
+2025-08-29 03:43:57,730,INFO,[PASS] RBAC: Cliente NO PUEDE ver Asociados
+2025-08-29 03:43:57,734,INFO,[PASS] RBAC: Cliente puede ver su Dashboard
+2025-08-29 03:43:57,738,INFO,[PASS] LOGIC: Filtro de Usuarios por teléfono funciona
+2025-08-29 03:43:57,741,INFO,[PASS] LOGIC: Filtro de Asociados por contacto funciona
+2025-08-29 03:43:57,746,INFO,[PASS] LOGIC: Filtro de Préstamos por cliente funciona
+2025-08-29 03:43:57,746,INFO,------------------------------------------------------------
+2025-08-29 03:43:57,746,INFO,  SECCIÓN 5: UTILIDADES
+2025-08-29 03:43:57,748,INFO,[PASS] UTILS: Check Username (existente)
+2025-08-29 03:43:57,749,INFO,[PASS] UTILS: Check Username (no existente)
+2025-08-29 03:43:57,751,INFO,[PASS] UTILS: Check CURP (existente)
+2025-08-29 03:43:57,753,INFO,[PASS] UTILS: Check Phone (existente)
+2025-08-29 03:43:58,316,INFO,[PASS] UTILS: Check Zip Code (API externa)
+2025-08-29 03:43:58,316,INFO,------------------------------------------------------------
+2025-08-29 03:43:58,316,INFO,  SECCIÓN 6: INTEGRIDAD DE DATOS Y RELACIONES
+2025-08-29 03:43:58,319,INFO,[PASS] INTEGRIDAD: Usuario de pruebas tiene aval correcto
+2025-08-29 03:43:58,524,ERROR,[FAIL] INTEGRIDAD: Composición de nombre aval (partes). Razón: El campo 'guarantor' es None
+2025-08-29 03:43:58,726,ERROR,[FAIL] INTEGRIDAD: Composición de nombre aval (full_name). Razón: El campo 'guarantor' es None
+2025-08-29 03:43:58,926,ERROR,[FAIL] INTEGRIDAD: Composición de nombre aval (mixto). Razón: El campo 'guarantor' es None
+2025-08-29 03:43:58,927,INFO,------------------------------------------------------------
+2025-08-29 03:43:58,927,INFO,  SECCIÓN 7: FLUJO E2E DE CREACIÓN Y ACCESO
+2025-08-29 03:43:59,128,INFO,[PASS] E2E: Creación de nuevo cliente
+2025-08-29 03:43:59,327,INFO,[PASS] E2E: Login de nuevo cliente
+2025-08-29 03:43:59,329,WARNING,[SKIP] E2E: Creación de préstamo para nuevo cliente. Razón: Endpoint POST /api/loans/ no implementado.
+2025-08-29 03:43:59,329,ERROR,[FAIL] E2E: Creación de préstamo para nuevo cliente. Razón: Resultado de prueba fue False
+2025-08-29 03:43:59,329,INFO,------------------------------------------------------------
+2025-08-29 03:43:59,329,ERROR,[FAILURE] 4 de 26 chequeos fallaron.
+2025-08-29 03:43:59,329,INFO,============================================================
+2025-08-29 03:46:14,816,INFO,============================================================
+2025-08-29 03:46:14,816,INFO,  INICIANDO SYSTEM HEALTH CHECK (SH) - CREDINET
+2025-08-29 03:46:14,816,INFO,============================================================
+2025-08-29 03:46:16,820,INFO,[PASS] PING: Verificando conectividad del servidor
+2025-08-29 03:46:17,042,INFO,[PASS] AUTH: Login de Administrador
+2025-08-29 03:46:17,243,INFO,[PASS] AUTH: Login de Asociado
+2025-08-29 03:46:17,443,INFO,[PASS] AUTH: Login de Cliente
+2025-08-29 03:46:17,455,INFO,[PASS] RBAC: Admin puede ver lista de Usuarios
+2025-08-29 03:46:17,460,INFO,[PASS] RBAC: Admin puede ver lista de Asociados
+2025-08-29 03:46:17,479,INFO,[PASS] RBAC: Admin puede ver Dashboard Global
+2025-08-29 03:46:17,482,INFO,[PASS] RBAC: Asociado NO PUEDE ver Usuarios
+2025-08-29 03:46:17,494,INFO,[PASS] RBAC: Asociado puede ver su Dashboard
+2025-08-29 03:46:17,497,INFO,[PASS] RBAC: Cliente NO PUEDE ver Usuarios
+2025-08-29 03:46:17,499,INFO,[PASS] RBAC: Cliente NO PUEDE ver Asociados
+2025-08-29 03:46:17,503,INFO,[PASS] RBAC: Cliente puede ver su Dashboard
+2025-08-29 03:46:17,507,INFO,[PASS] LOGIC: Filtro de Usuarios por teléfono funciona
+2025-08-29 03:46:17,510,INFO,[PASS] LOGIC: Filtro de Asociados por contacto funciona
+2025-08-29 03:46:17,515,INFO,[PASS] LOGIC: Filtro de Préstamos por cliente funciona
+2025-08-29 03:46:17,515,INFO,------------------------------------------------------------
+2025-08-29 03:46:17,515,INFO,  SECCIÓN 5: UTILIDADES
+2025-08-29 03:46:17,517,INFO,[PASS] UTILS: Check Username (existente)
+2025-08-29 03:46:17,519,INFO,[PASS] UTILS: Check Username (no existente)
+2025-08-29 03:46:17,520,INFO,[PASS] UTILS: Check CURP (existente)
+2025-08-29 03:46:17,522,INFO,[PASS] UTILS: Check Phone (existente)
+2025-08-29 03:46:18,101,INFO,[PASS] UTILS: Check Zip Code (API externa)
+2025-08-29 03:46:18,102,INFO,------------------------------------------------------------
+2025-08-29 03:46:18,102,INFO,  SECCIÓN 6: INTEGRIDAD DE DATOS Y RELACIONES
+2025-08-29 03:46:18,105,INFO,[PASS] INTEGRIDAD: Usuario de pruebas tiene aval correcto
+2025-08-29 03:46:18,309,ERROR,[FAIL] INTEGRIDAD: Composición de nombre aval (partes). Razón: El campo 'guarantor' es None
+2025-08-29 03:46:18,509,ERROR,[FAIL] INTEGRIDAD: Composición de nombre aval (full_name). Razón: El campo 'guarantor' es None
+2025-08-29 03:46:18,709,ERROR,[FAIL] INTEGRIDAD: Composición de nombre aval (mixto). Razón: El campo 'guarantor' es None
+2025-08-29 03:46:18,709,INFO,------------------------------------------------------------
+2025-08-29 03:46:18,709,INFO,  SECCIÓN 7: FLUJO E2E DE CREACIÓN Y ACCESO
+2025-08-29 03:46:18,910,INFO,[PASS] E2E: Creación de nuevo cliente
+2025-08-29 03:46:19,108,INFO,[PASS] E2E: Login de nuevo cliente
+2025-08-29 03:46:19,110,WARNING,[SKIP] E2E: Creación de préstamo para nuevo cliente. Razón: Endpoint POST /api/loans/ no implementado.
+2025-08-29 03:46:19,110,ERROR,[FAIL] E2E: Creación de préstamo para nuevo cliente. Razón: Resultado de prueba fue False
+2025-08-29 03:46:19,110,INFO,------------------------------------------------------------
+2025-08-29 03:46:19,110,ERROR,[FAILURE] 4 de 26 chequeos fallaron.
+2025-08-29 03:46:19,110,INFO,============================================================

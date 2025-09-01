@@ -49,7 +49,16 @@ const AssociatesPage = () => {
   };
 
   const handleDelete = async (associateId) => {
-    // Lógica de borrado (sin cambios)
+    if (window.confirm('¿Estás seguro de que deseas eliminar este asociado? Esta acción no se puede deshacer.')) {
+      try {
+        await apiClient.delete(`/associates/${associateId}`);
+        // Recargar la lista después de eliminar
+        fetchAssociates(currentPage, searchTerm);
+      } catch (err) {
+        setError('No se pudo eliminar el asociado.');
+        console.error('Error al eliminar el asociado:', err);
+      }
+    }
   };
 
   return (
@@ -102,7 +111,7 @@ const AssociatesPage = () => {
                   {canManage && (
                     <td className="actions-cell">
                       <Link to={`/associates/${assoc.id}/loans`}><button>Préstamos</button></Link>
-                      <button>Editar</button>
+                      <Link to={`/associates/edit/${assoc.id}`}><button>Editar</button></Link>
                       {canDelete && (
                         <button onClick={() => handleDelete(assoc.id)} style={{ marginLeft: '5px' }}>Eliminar</button>
                       )}

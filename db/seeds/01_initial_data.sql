@@ -56,7 +56,7 @@ ON CONFLICT (user_id, role_id) DO NOTHING;
 INSERT INTO addresses (user_id, street, colony, zip_code, municipality, state) VALUES
 (1, 'Calle Falsa 123', 'Centro', '06000', 'Cuauhtémoc', 'Ciudad de México'),
 (4, 'Av. Siempre Viva 742', 'Springfield', '90210', 'Springfield', 'California'),
-(5, 'Calle del Sol 45', 'Roma Norte', '06700', 'Cuauhtémoc', 'Ciudad de México')
+(5, 'Calle del Sol 45', 'Roma Norte', '06700', 'Cuauhtémoc', 'Ciudad de México'),
 (1000, 'Calle Aval 100', 'Centro', '31000', 'Chihuahua', 'Chihuahua')
 ON CONFLICT (user_id) DO NOTHING;
 
@@ -80,12 +80,11 @@ INSERT INTO payments (id, loan_id, amount_paid, payment_date) VALUES
 ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO beneficiaries (id, user_id, full_name, relationship, phone_number) VALUES
-(1, 5, 'Maria Pérez', 'Cónyuge', '5599887766'), (2, 5, 'Roberto Pérez', 'Padre', '5512345678'),
-(3, 4, 'Luis Vargas', 'Hermano', '5587654321')
-(100, 1000, 'Luis Aval', 'Hermano', '6140000001')
-ON CONFLICT (id) DO NOTHING;
-
--- =============================================================================
+        (1, 5, 'Maria Pérez', 'Cónyuge', '5599887766'), 
+        (2, 5, 'Roberto Pérez', 'Padre', '5512345678'),
+        (3, 4, 'Luis Vargas', 'Hermano', '5587654321'),
+        (100, 1000, 'Luis Aval', 'Hermano', '6140000001')
+        ON CONFLICT (id) DO NOTHING;-- =============================================================================
 -- DATOS DE PAGINACIÓN
 -- =============================================================================
 
@@ -147,5 +146,4 @@ INSERT INTO guarantors (user_id, full_name, relationship, phone_number, curp)
 VALUES
     (5, 'Pedro Aval', 'Padre', '5512345678', 'AVAP800101HDFLLL02'),
     (4, 'Laura Aval', 'Hermana', '5523456789', 'AVAL850520MDFLLL03'),
-    (1000, 'Maria Cruz', 'Amiga', '6143618296', 'FACJ950525HCHRRR04');
-ON CONFLICT DO NOTHING;
+    (6, 'Maria Cruz', 'Amiga', '6143618296', 'FACJ950525HCHRRR04');

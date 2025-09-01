@@ -44,6 +44,43 @@ async def check_phone_exists(phone_number: str, conn: asyncpg.Connection = Depen
     
     return {"exists": record is not None}
 
+@router.get("/check-email/{email}", summary="Verificar si un email ya existe")
+async def check_email_exists(email: str, conn: asyncpg.Connection = Depends(get_db)):
+    """
+    Verifica si un email ya está registrado en la base de datos.
+    """
+    if not email:
+        raise HTTPException(status_code=400, detail="El email no puede estar vacío.")
+    
+    record = await conn.fetchrow("SELECT id FROM users WHERE email = $1", email.lower())
+    
+    return {"exists": record is not None}
+
+# Endpoints de validación con formato esperado por el frontend
+@router.get("/validate-username", summary="Validar disponibilidad de nombre de usuario")
+async def validate_username(username: str, conn: asyncpg.Connection = Depends(get_db)):
+    """
+    Valida si un nombre de usuario está disponible.
+    """
+    if not username:
+        raise HTTPException(status_code=400, detail="El nombre de usuario no puede estar vacío.")
+    
+    record = await conn.fetchrow("SELECT id FROM users WHERE username = $1", username)
+    
+    return {"available": record is None}
+
+@router.get("/validate-curp", summary="Validar disponibilidad de CURP")
+async def validate_curp(curp: str, conn: asyncpg.Connection = Depends(get_db)):
+    """
+    Valida si una CURP está disponible.
+    """
+    if not curp or len(curp) != 18:
+        raise HTTPException(status_code=400, detail="La CURP debe tener 18 caracteres.")
+    
+    record = await conn.fetchrow("SELECT id FROM users WHERE curp = $1", curp.upper())
+    
+    return {"available": record is None}
+
 
 @router.get("/zip-code/{zip_code}", summary="Consultar información de un código postal")
 async def get_zip_code_info(zip_code: str):
@@ -53,7 +90,7 @@ async def get_zip_code_info(zip_code: str):
     if not zip_code.isdigit() or len(zip_code) != 5:
         raise HTTPException(status_code=400, detail="El código postal debe ser un número de 5 dígitos.")
 
-    async with httpx.AsyncClient() as client:
+    async with httpx.AsyncClient(timeout=10.0) as client:
         try:
             # Preparamos los headers que la API externa espera
             headers = {
@@ -64,6 +101,15 @@ async def get_zip_code_info(zip_code: str):
             # Hacemos la petición GET con los parámetros y headers correctos
             response = await client.get(f"{ZIP_CODE_API_URL}", params={"cp": zip_code}, headers=headers)
             
+            if response.status_code == 404:
+                # Código postal no encontrado, devolvemos datos por defecto
+                return {
+                    "estado": "DESCONOCIDO",
+                    "municipio": "DESCONOCIDO",
+                    "colonias": [],
+                    "warning": "Código postal no encontrado en la API externa"
+                }
+            
             response.raise_for_status()  # Lanza una excepción para respuestas 4xx/5xx
             data = response.json()
             
@@ -71,17 +117,41 @@ async def get_zip_code_info(zip_code: str):
             cp_data = data.get("codigo_postal", {})
 
             if not cp_data:
-                raise HTTPException(status_code=404, detail="No se encontró información para el código postal.")
+                # Fallback con datos por defecto
+                return {
+                    "estado": "DESCONOCIDO",
+                    "municipio": "DESCONOCIDO", 
+                    "colonias": [],
+                    "warning": "No se encontró información específica para el código postal"
+                }
 
             return {
-                "estado": cp_data.get("estado"),
-                "municipio": cp_data.get("municipio"),
+                "estado": cp_data.get("estado", "DESCONOCIDO"),
+                "municipio": cp_data.get("municipio", "DESCONOCIDO"),
                 "colonias": cp_data.get("colonias", []),
             }
 
+        except httpx.TimeoutException:
+            # API externa no responde, devolvemos datos por defecto
+            return {
+                "estado": "DESCONOCIDO",
+                "municipio": "DESCONOCIDO",
+                "colonias": [],
+                "warning": "Servicio de códigos postales temporalmente no disponible"
+            }
         except httpx.HTTPStatusError as exc:
-            # Capturamos el detalle del error de la API externa para más claridad
-            error_detail = exc.response.text
-            raise HTTPException(status_code=exc.response.status_code, detail=f"Error al consultar el código postal: {error_detail}")
+            # Error de la API externa, devolvemos datos por defecto
+            return {
+                "estado": "DESCONOCIDO", 
+                "municipio": "DESCONOCIDO",
+                "colonias": [],
+                "warning": f"Error al consultar código postal (HTTP {exc.response.status_code})"
+            }
         except Exception as e:
-            raise HTTPException(status_code=500, detail=f"Error interno del servidor: {str(e)}")
+            # Cualquier otro error, devolvemos datos por defecto
+            return {
+                "estado": "DESCONOCIDO",
+                "municipio": "DESCONOCIDO", 
+                "colonias": [],
+                "warning": f"Error interno: {str(e)}"
+            }

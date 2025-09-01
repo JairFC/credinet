@@ -1,4 +1,5 @@
 from fastapi import APIRouter, HTTPException, Depends, status
+import logging
 from fastapi.security import OAuth2PasswordRequestForm
 import asyncpg
 import json
@@ -71,19 +72,50 @@ async def register_user(
                     user_data.beneficiary.phone_number
                 )
 
-            # Inserción de aval (guarantor) si existe
-            if user_data.guarantor:
-                await conn.execute(
-                    """
-                    INSERT INTO guarantors (user_id, full_name, relationship, phone_number, curp)
-                    VALUES ($1, $2, $3, $4, $5)
-                    """,
-                    new_user_record['id'],
-                    user_data.guarantor.full_name,
-                    user_data.guarantor.relationship,
-                    user_data.guarantor.phone_number,
-                    user_data.guarantor.curp
-                )
+            # Inserción de aval (guarantor) si se proporciona algún dato útil
+            if user_data.guarantor is not None:
+                # Detectar si al menos un campo útil fue enviado
+                try:
+                    guarantor_fields = [
+                        getattr(user_data.guarantor, 'full_name', None),
+                        getattr(user_data.guarantor, 'first_name', None),
+                        getattr(user_data.guarantor, 'paternal_last_name', None),
+                        getattr(user_data.guarantor, 'maternal_last_name', None),
+                        getattr(user_data.guarantor, 'relationship', None),
+                        getattr(user_data.guarantor, 'phone_number', None),
+                        getattr(user_data.guarantor, 'curp', None),
+                    ]
+                except Exception:
+                    guarantor_fields = []
+
+                has_guarantor_data = any([f is not None and (not isinstance(f, str) or f.strip() != '') for f in guarantor_fields])
+
+                if has_guarantor_data:
+                    # Compatibilidad: si no viene full_name, componerlo desde las partes si están disponibles
+                    composed_full_name = None
+                    try:
+                        if getattr(user_data.guarantor, 'full_name', None):
+                            composed_full_name = user_data.guarantor.full_name
+                        else:
+                            parts = [getattr(user_data.guarantor, 'first_name', None), getattr(user_data.guarantor, 'paternal_last_name', None), getattr(user_data.guarantor, 'maternal_last_name', None)]
+                            parts = [p.strip() for p in parts if p and p.strip()]
+                            if parts:
+                                composed_full_name = ' '.join(parts)
+                    except Exception:
+                        composed_full_name = getattr(user_data.guarantor, 'full_name', None)
+
+                    await conn.execute(
+                        """
+                        INSERT INTO guarantors (user_id, full_name, relationship, phone_number, curp)
+                        VALUES ($1, $2, $3, $4, $5)
+                        """,
+                        new_user_record['id'],
+                        composed_full_name,
+                        user_data.guarantor.relationship,
+                        user_data.guarantor.phone_number,
+                        user_data.guarantor.curp
+                    )
+                    # guarantor inserted
 
             if user_data.associate_data:
                 associate_name = f"{user_data.first_name} {user_data.last_name}"
@@ -122,6 +154,24 @@ async def register_user(
     user_dict['address'] = dict(address_record) if address_record else None
     beneficiaries_records = await conn.fetch("SELECT * FROM beneficiaries WHERE user_id = $1", user_dict['id'])
     user_dict['beneficiaries'] = [dict(rec) for rec in beneficiaries_records]
+
+    # Obtener el aval (guarantor) si existe para incluirlo en la respuesta
+    guarantor_record = await conn.fetchrow("SELECT * FROM guarantors WHERE user_id = $1", user_dict['id'])
+    if guarantor_record:
+        guarantor = dict(guarantor_record)
+        # Si solo disponemos de full_name en la tabla, derivar partes del nombre para compatibilidad con la API
+        if guarantor.get('full_name') and not any([guarantor.get('first_name'), guarantor.get('paternal_last_name'), guarantor.get('maternal_last_name')]):
+            parts = [p.strip() for p in guarantor['full_name'].split() if p.strip()]
+            if len(parts) >= 1:
+                guarantor['first_name'] = parts[0]
+            if len(parts) >= 2:
+                guarantor['paternal_last_name'] = parts[1]
+            if len(parts) >= 3:
+                # juntar el resto como apellido materno si hay más de 3 partes
+                guarantor['maternal_last_name'] = ' '.join(parts[2:])
+        user_dict['guarantor'] = guarantor
+    else:
+        user_dict['guarantor'] = None
 
     return UserResponse.model_validate(user_dict)
 
@@ -276,9 +326,25 @@ async def update_user(
             guarantor_update_params = []
             guarantor_param_counter = 1
 
-            if user_data.guarantor.full_name is not None:
+            # Si vienen partes del nombre, componer full_name para actualizar/insertar
+            composed_full_name = None
+            try:
+                if getattr(user_data.guarantor, 'full_name', None):
+                    composed_full_name = user_data.guarantor.full_name
+                else:
+                    p1 = getattr(user_data.guarantor, 'first_name', None)
+                    p2 = getattr(user_data.guarantor, 'paternal_last_name', None)
+                    p3 = getattr(user_data.guarantor, 'maternal_last_name', None)
+                    parts = [p1, p2, p3]
+                    parts = [p.strip() for p in parts if p and p.strip()]
+                    if parts:
+                        composed_full_name = ' '.join(parts)
+            except Exception:
+                composed_full_name = getattr(user_data.guarantor, 'full_name', None)
+
+            if composed_full_name is not None:
                 guarantor_update_fields.append(f"full_name = ${guarantor_param_counter}")
-                guarantor_update_params.append(user_data.guarantor.full_name)
+                guarantor_update_params.append(composed_full_name)
                 guarantor_param_counter += 1
             if user_data.guarantor.relationship is not None:
                 guarantor_update_fields.append(f"relationship = ${guarantor_param_counter}")
@@ -328,7 +394,19 @@ async def update_user(
 
     # Obtener el aval (guarantor) si existe
     guarantor_record = await conn.fetchrow("SELECT * FROM guarantors WHERE user_id = $1", user_id)
-    updated_user_dict['guarantor'] = dict(guarantor_record) if guarantor_record else None
+    if guarantor_record:
+        guarantor = dict(guarantor_record)
+        if guarantor.get('full_name') and not any([guarantor.get('first_name'), guarantor.get('paternal_last_name'), guarantor.get('maternal_last_name')]):
+            parts = [p.strip() for p in guarantor['full_name'].split() if p.strip()]
+            if len(parts) >= 1:
+                guarantor['first_name'] = parts[0]
+            if len(parts) >= 2:
+                guarantor['paternal_last_name'] = parts[1]
+            if len(parts) >= 3:
+                guarantor['maternal_last_name'] = ' '.join(parts[2:])
+        updated_user_dict['guarantor'] = guarantor
+    else:
+        updated_user_dict['guarantor'] = None
     
     return UserResponse.model_validate(updated_user_dict)
 
@@ -336,11 +414,15 @@ async def update_user(
 async def read_users(
     page: int = 1,
     limit: int = 20,
+    size: int = None,
     role: str = None,
     search: str = None,
     conn: asyncpg.Connection = Depends(get_db),
     current_user: UserInDB = Depends(require_roles(["administrador", "desarrollador"]))
 ):
+    # Compatibilidad hacia atrás: aceptar `size` (parámetro antiguo) y mapearlo a `limit` si se proporciona
+    if size is not None:
+        limit = size
     offset = (page - 1) * limit
     
     params = []

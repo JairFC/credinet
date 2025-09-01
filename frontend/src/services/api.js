@@ -26,8 +26,8 @@ export const getGlobalSummary = () => apiClient.get('/loans/summary');
 export const getAssociateDashboard = () => apiClient.get('/associates/dashboard');
 export const getClientDashboard = () => apiClient.get('/auth/me/dashboard');
 
-export const getUsers = (page = 1, size = 20, role = null, search = '') => {
-  const params = new URLSearchParams({ page, size });
+export const getUsers = (page = 1, limit = 20, role = null, search = '') => {
+  const params = new URLSearchParams({ page, limit });
   if (role) {
     params.append('role', role);
   }
@@ -39,16 +39,16 @@ export const getUsers = (page = 1, size = 20, role = null, search = '') => {
 
 export const getUserDetails = (userId) => apiClient.get(`/auth/users/${userId}`);
 
-export const getAssociates = (page = 1, size = 20, search = '') => {
-  const params = new URLSearchParams({ page, size });
+export const getAssociates = (page = 1, limit = 20, search = '') => {
+  const params = new URLSearchParams({ page, limit });
   if (search) {
     params.append('search', search);
   }
   return apiClient.get(`/associates/?${params.toString()}`);
 };
 
-export const getLoans = (page = 1, size = 20, search = '') => {
-  const params = new URLSearchParams({ page, size });
+export const getLoans = (page = 1, limit = 20, search = '') => {
+  const params = new URLSearchParams({ page, limit });
   if (search) {
     params.append('search', search);
   }

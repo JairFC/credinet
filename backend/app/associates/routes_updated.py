@@ -1,72 +1,14 @@
 from typing import List
-from fastapi import APIRouter, Depends, HTTPException, status, Query
-from pydantic import BaseModel
+from fastapi import APIRouter, Depends, HTTPException, status
 import asyncpg
 
 from app.common import database
 from app.common.database import get_db
 from app.auth.jwt import require_roles, get_current_user
-from app.auth.schemas import UserInDB, UserResponse
+from app.auth.schemas import UserInDB
 from . import schemas
-from app.loans.schemas import LoanResponse
-from app.logic import get_enriched_loan
-
-class PaginatedAssociateResponse(BaseModel):
-    items: List[schemas.AssociateResponse]
-    total: int
-    page: int
-    limit: int
-    pages: int
-
-class AssociateDashboardData(BaseModel):
-    summary: schemas.AssociateSummaryResponse
-    loans: List[LoanResponse]
-    users: List[UserResponse]
 
 router = APIRouter()
-
-@router.get("/", response_model=PaginatedAssociateResponse)
-async def get_associates(
-    page: int = 1,
-    limit: int = 20,
-    search: str = Query(None, description="Buscar por nombre, contacto o email"),
-    current_user: UserInDB = Depends(require_roles(["desarrollador", "administrador", "auxiliar_administrativo"])),
-    conn: asyncpg.Connection = Depends(get_db)
-):
-    """Obtiene lista paginada de asociados con filtros opcionales"""
-    offset = (page - 1) * limit
-    
-    params = []
-    where_clauses = []
-
-    if search:
-        params.append(f"%{search}%")
-        search_fields = ["name", "contact_person", "contact_email"]
-        search_conditions = " OR ".join([f"{field} ILIKE ${len(params)}" for field in search_fields])
-        where_clauses.append(f"({search_conditions})")
-
-    where_sql = ""
-    if where_clauses:
-        where_sql = " WHERE " + " AND ".join(where_clauses)
-
-    base_query = f"FROM associates{where_sql}"
-    count_query = "SELECT COUNT(id) " + base_query
-    data_query = "SELECT * " + base_query
-
-    total_records = await conn.fetchval(count_query, *params)
-    
-    data_query += f" ORDER BY id LIMIT ${len(params) + 1} OFFSET ${len(params) + 2}"
-    params.extend([limit, offset])
-    
-    records = await conn.fetch(data_query, *params)
-    
-    return {
-        "items": [dict(rec) for rec in records],
-        "total": total_records,
-        "page": page,
-        "limit": limit,
-        "pages": (total_records + limit - 1) // limit if limit > 0 else 0
-    }
 
 @router.post("/", response_model=schemas.AssociateResponse, status_code=status.HTTP_201_CREATED)
 async def create_associate(
@@ -93,74 +35,6 @@ async def create_associate(
         raise HTTPException(status_code=400, detail="Ya existe un asociado con ese nombre o email")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error al crear el asociado: {str(e)}")
-
-@router.get("/dashboard", response_model=AssociateDashboardData)
-async def get_associate_dashboard_data(
-    current_user: UserInDB = Depends(get_current_user)
-):
-    """Obtiene el dashboard para un asociado"""
-    if "asociado" not in current_user.roles:
-        raise HTTPException(status_code=403, detail="Acceso denegado.")
-    
-    associate_id = current_user.associate_id
-    if not associate_id:
-        raise HTTPException(status_code=400, detail="Usuario no está vinculado a ningún asociado.")
-
-    async with database.db_pool.acquire() as conn:
-        loan_ids_records = await conn.fetch("SELECT id FROM loans WHERE associate_id = $1", associate_id)
-        
-        enriched_loans_dicts = []
-        for r in loan_ids_records:
-            loan = await get_enriched_loan(conn, r['id'])
-            if loan:
-                enriched_loans_dicts.append(loan)
-        
-        summary_data = {
-            "total_loans": len(enriched_loans_dicts), 
-            "active_loans": 0,
-            "total_loaned_amount": 0.0, 
-            "total_outstanding_balance": 0.0, 
-            "total_commission": 0.0
-        }
-        
-        for loan in enriched_loans_dicts:
-            summary_data["total_loaned_amount"] += float(loan['amount'])
-            summary_data["total_outstanding_balance"] += float(loan['outstanding_balance'])
-            if loan['status'] == 'active': 
-                summary_data["active_loans"] += 1
-            commission = float(loan['amount']) * (float(loan['commission_rate'] or 0) / 100.0)
-            summary_data["total_commission"] += commission
-        
-        user_ids = {loan['user_id'] for loan in enriched_loans_dicts}
-        users_records = []
-        
-        if user_ids:
-            users_query = "SELECT * FROM users WHERE id = ANY($1::int[])"
-            users_records = await conn.fetch(users_query, list(user_ids))
-
-        final_summary = schemas.AssociateSummaryResponse(**summary_data)
-        final_loans = [LoanResponse.model_validate(loan) for loan in enriched_loans_dicts]
-        
-        final_users = []
-        for user_record in users_records:
-            user_dict = dict(user_record)
-            user_dict['roles'] = await database.get_user_roles(conn, user_dict['id'])
-            final_users.append(UserResponse.model_validate(user_dict))
-
-    return AssociateDashboardData(
-        summary=final_summary,
-        loans=final_loans,
-        users=final_users
-    )
-
-@router.get("/levels", response_model=List[schemas.AssociateLevelResponse])
-async def get_associate_levels(
-    conn: asyncpg.Connection = Depends(get_db),
-    current_user: UserInDB = Depends(require_roles(["desarrollador", "administrador", "auxiliar_administrativo"]))
-):
-    """Obtiene la lista de niveles de asociado disponibles"""
-    records = await conn.fetch("SELECT * FROM associate_levels ORDER BY max_loan_amount")
-    return [dict(record) for record in records]
 
 @router.get("/{associate_id}", response_model=schemas.AssociateResponse)
 async def get_associate_by_id(
@@ -245,3 +119,12 @@ async def delete_associate(
     # Si no hay dependencias, eliminamos el asociado
     await conn.execute("DELETE FROM associates WHERE id = $1", associate_id)
     return None
+
+@router.get("/levels", response_model=List[schemas.AssociateLevelResponse])
+async def get_associate_levels(
+    conn: asyncpg.Connection = Depends(get_db),
+    current_user: UserInDB = Depends(require_roles(["desarrollador", "administrador", "auxiliar_administrativo"]))
+):
+    """Obtiene la lista de niveles de asociado disponibles"""
+    records = await conn.fetch("SELECT * FROM associate_levels ORDER BY max_loan_amount")
+    return [dict(record) for record in records]

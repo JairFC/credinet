@@ -60,11 +60,24 @@ const EditClientModal = ({ user, onUpdateSuccess, onClose }) => {
     profile_picture_url: user.profile_picture_url || '',
     password: '',
     confirmPassword: '',
-    address: user.address || {
+    address: user.address ? {
+      street: user.address.street || '',
+      external_number: user.address.external_number || '',
+      internal_number: user.address.internal_number || '',
+      colony: user.address.colony || '',
+      municipality: user.address.municipality || '',
+      state: user.address.state || '',
+      zip_code: user.address.zip_code || '',
+    } : {
       street: '', external_number: '', internal_number: '',
       colony: '', municipality: '', state: '', zip_code: '',
     },
-    guarantor: user.guarantor || {
+    guarantor: user.guarantor ? {
+      full_name: user.guarantor.full_name || '',
+      relationship: user.guarantor.relationship || '',
+      phone_number: user.guarantor.phone_number || '',
+      curp: user.guarantor.curp || '',
+    } : {
       full_name: '', relationship: '', phone_number: '', curp: '',
     },
   };
@@ -147,7 +160,7 @@ const EditClientModal = ({ user, onUpdateSuccess, onClose }) => {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    
+
     if (name.startsWith('address.')) {
       const addressField = name.split('.')[1];
       setFormData(prev => ({
@@ -165,17 +178,17 @@ const EditClientModal = ({ user, onUpdateSuccess, onClose }) => {
     } else if (name.startsWith('guarantor.')) {
       const guarantorField = name.split('.')[1];
       let finalValue = value;
-      
+
       // Limpiar teléfono (solo dígitos, máximo 10)
       if (guarantorField === 'phone_number') {
         finalValue = value.replace(/\D/g, '').slice(0, 10);
       }
-      
+
       // Convertir CURP a mayúsculas
       if (guarantorField === 'curp') {
         finalValue = value.toUpperCase();
       }
-      
+
       setFormData(prev => ({
         ...prev,
         guarantor: {
@@ -340,7 +353,7 @@ const EditClientModal = ({ user, onUpdateSuccess, onClose }) => {
               {isApiDown ? (
                 <select name="address.state" value={formData.address.state} onChange={handleChange}>
                   <option value="">Seleccione un estado</option>
-                  {mexicoData.estados.map(e => <option key={e.nombre} value={e.nombre}>{e.nombre}</option>)} 
+                  {mexicoData.estados.map(e => <option key={e.nombre} value={e.nombre}>{e.nombre}</option>)}
                 </select>
               ) : (
                 <input type="text" name="address.state" value={formData.address.state} readOnly />
@@ -351,7 +364,7 @@ const EditClientModal = ({ user, onUpdateSuccess, onClose }) => {
               {isApiDown ? (
                 <select name="address.municipality" value={formData.address.municipality} onChange={handleChange} disabled={!formData.address.state}>
                   <option value="">Seleccione un municipio</option>
-                  {municipios.map(m => <option key={m} value={m}>{m}</option>)} 
+                  {municipios.map(m => <option key={m} value={m}>{m}</option>)}
                 </select>
               ) : (
                 <input type="text" name="address.municipality" value={formData.address.municipality} readOnly />
@@ -364,7 +377,7 @@ const EditClientModal = ({ user, onUpdateSuccess, onClose }) => {
               ) : (
                 <select name="address.colony" value={formData.address.colony} onChange={handleChange}>
                   <option value="">Seleccione una colonia</option>
-                  {coloniaSuggestions.map((colonia, index) => <option key={index} value={colonia}>{colonia}</option>)} 
+                  {coloniaSuggestions.map((colonia, index) => <option key={index} value={colonia}>{colonia}</option>)}
                 </select>
               )}
             </div>
@@ -402,73 +415,75 @@ const EditClientModal = ({ user, onUpdateSuccess, onClose }) => {
           <CollapsibleSection title="5. Aval" isOpen={openSection === 'guarantor'} onClick={() => setOpenSection('guarantor')}>
             <div className="form-group">
               <label>Nombre Completo del Aval:</label>
-              <input 
-                type="text" 
-                name="guarantor.full_name" 
-                value={formData.guarantor.full_name} 
-                onChange={handleChange} 
+              <input
+                type="text"
+                name="guarantor.full_name"
+                value={formData.guarantor.full_name}
+                onChange={handleChange}
               />
             </div>
             <div className="form-group">
               <label>Parentesco:</label>
-              <input 
-                type="text" 
-                name="guarantor.relationship" 
-                value={formData.guarantor.relationship} 
-                onChange={handleChange} 
+              <input
+                type="text"
+                name="guarantor.relationship"
+                value={formData.guarantor.relationship}
+                onChange={handleChange}
               />
             </div>
             <div className="form-group">
               <label>Teléfono del Aval:</label>
-              <input 
-                type="text" 
-                name="guarantor.phone_number" 
-                value={formData.guarantor.phone_number} 
-                onChange={handleChange} 
+              <input
+                type="text"
+                name="guarantor.phone_number"
+                value={formData.guarantor.phone_number}
+                onChange={handleChange}
                 maxLength="10"
               />
             </div>
             <div className="form-group">
               <label>CURP del Aval:</label>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <input 
-                  type="text" 
-                  name="guarantor.curp" 
-                  value={formData.guarantor.curp} 
-                  onChange={handleChange} 
-                  maxLength="18" 
+                <input
+                  type="text"
+                  name="guarantor.curp"
+                  value={formData.guarantor.curp}
+                  onChange={handleChange}
+                  maxLength="18"
                   style={{ textTransform: 'uppercase' }}
                 />
-                <button 
-                  type="button" 
+                <button
+                  type="button"
                   onClick={() => {
-                    if (formData.guarantor.full_name) {
-                      // Generar CURP automática con datos ficticios para el aval
-                      const parts = formData.guarantor.full_name.split(' ');
-                      const nombre = parts[0] || '';
-                      const apellidoPaterno = parts[1] || '';
-                      const apellidoMaterno = parts[2] || '';
-                      
-                      const curp = generateCurp({
-                        nombre,
-                        apellidoPaterno,
-                        apellidoMaterno,
-                        fechaNacimiento: '1980-01-01', // Fecha ficticia
-                        sexo: 'HOMBRE', // Sexo ficticio
-                        estadoNacimiento: 'CHIHUAHUA' // Estado ficticio
-                      });
-                      
-                      setFormData(prev => ({
-                        ...prev,
-                        guarantor: {
-                          ...prev.guarantor,
-                          curp: curp
-                        }
-                      }));
-                    }
+                    // Generar CURP solo si hay partes para componer o full_name
+                    const partsFromFields = [formData.guarantor.first_name, formData.guarantor.paternal_last_name, formData.guarantor.maternal_last_name].filter(p => p && p.trim());
+                    const hasParts = partsFromFields.length > 0;
+                    const hasFullName = !!formData.guarantor.full_name;
+                    if (!hasParts && !hasFullName) return;
+
+                    const nombre = hasParts ? (partsFromFields[0] || '') : (formData.guarantor.full_name || '').split(' ')[0] || '';
+                    const apellidoPaterno = hasParts ? (partsFromFields[1] || '') : (formData.guarantor.full_name || '').split(' ')[1] || '';
+                    const apellidoMaterno = hasParts ? (partsFromFields[2] || '') : (formData.guarantor.full_name || '').split(' ')[2] || '';
+
+                    const curp = generateCurp({
+                      nombre,
+                      apellidoPaterno,
+                      apellidoMaterno,
+                      fechaNacimiento: '1980-01-01',
+                      sexo: 'HOMBRE',
+                      estadoNacimiento: 'CHIHUAHUA'
+                    });
+
+                    setFormData(prev => ({
+                      ...prev,
+                      guarantor: {
+                        ...prev.guarantor,
+                        curp: curp
+                      }
+                    }));
                   }}
-                  disabled={!formData.guarantor.full_name}
-                  title="Genera una CURP automática basada en el nombre del aval"
+                  disabled={!((formData.guarantor && (formData.guarantor.first_name || formData.guarantor.paternal_last_name || formData.guarantor.maternal_last_name)) || (formData.guarantor && formData.guarantor.full_name))}
+                  title="Genera una CURP automática basada en los datos del aval"
                 >
                   Generar CURP
                 </button>
@@ -488,10 +503,10 @@ const EditClientModal = ({ user, onUpdateSuccess, onClose }) => {
         </form>
       </div>
       {showConfirmation && (
-        <ConfirmationModal 
-          message={confirmationMessage} 
-          onConfirm={handleConfirmSubmit} 
-          onCancel={() => setShowConfirmation(false)} 
+        <ConfirmationModal
+          message={confirmationMessage}
+          onConfirm={handleConfirmSubmit}
+          onCancel={() => setShowConfirmation(false)}
         />
       )}
     </div>,

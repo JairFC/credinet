@@ -55,7 +55,7 @@ const UsersPage = ({ roleFilter = null, pageTitle = "Gestión de Usuarios" }) =>
     <div className="clients-page">
       <Link to="/dashboard" className="back-link">← Volver al Dashboard</Link>
       <h1>{pageTitle} ({data.total})</h1>
-      
+
       <div className="toolbar">
         <div>
           {canManage && (
@@ -97,7 +97,7 @@ const UsersPage = ({ roleFilter = null, pageTitle = "Gestión de Usuarios" }) =>
                   <td>{u.first_name} {u.last_name}</td>
                   <td>{u.email}</td>
                   <td>{u.phone_number}</td>
-                  {!roleFilter && <td>{u.role}</td>}
+                  {!roleFilter && <td>{u.roles ? u.roles.join(', ') : ''}</td>}
                   <td className="actions-cell">
                     <Link to={`/users/${u.id}/loans`}><button>Préstamos</button></Link>
                     {canManage && <Link to={`/clients/${u.id}`}><button style={{ marginLeft: '5px' }}>Ver Detalles</button></Link>}

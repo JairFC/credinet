@@ -32,8 +32,24 @@ CREATE TABLE IF NOT EXISTS associates (
     contact_person VARCHAR(150),
     contact_email VARCHAR(100) UNIQUE,
     default_commission_rate NUMERIC(5, 2) NOT NULL DEFAULT 5.00,
+    -- Campos para tracking de niveles
+    consecutive_full_credit_periods INTEGER DEFAULT 0,
+    consecutive_on_time_payments INTEGER DEFAULT 0,
+    clients_in_agreement INTEGER DEFAULT 0,
+    last_level_evaluation_date TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Tabla para historial de cambios de nivel
+CREATE TABLE IF NOT EXISTS associate_level_history (
+    id SERIAL PRIMARY KEY,
+    associate_id INTEGER NOT NULL REFERENCES associates(id),
+    old_level_id INTEGER REFERENCES associate_levels(id),
+    new_level_id INTEGER NOT NULL REFERENCES associate_levels(id),
+    reason VARCHAR(500),
+    change_type VARCHAR(20) CHECK (change_type IN ('UPGRADE', 'DOWNGRADE', 'MANUAL')),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE IF NOT EXISTS users (
@@ -115,6 +131,156 @@ CREATE TRIGGER update_beneficiaries_updated_at BEFORE UPDATE ON beneficiaries FO
 CREATE TRIGGER update_loans_updated_at BEFORE UPDATE ON loans FOR EACH ROW EXECUTE PROCEDURE update_updated_at_column();
 CREATE TRIGGER update_payments_updated_at BEFORE UPDATE ON payments FOR EACH ROW EXECUTE PROCEDURE update_updated_at_column();
 
+-- Trigger para rastrear cambios de nivel de asociados
+CREATE OR REPLACE FUNCTION track_associate_level_change()
+RETURNS TRIGGER AS $$
+BEGIN
+    -- Solo registrar si el nivel realmente cambió
+    IF OLD.level_id IS DISTINCT FROM NEW.level_id THEN
+        INSERT INTO associate_level_history (
+            associate_id, 
+            old_level_id, 
+            new_level_id, 
+            reason,
+            change_type
+        ) VALUES (
+            NEW.id,
+            OLD.level_id,
+            NEW.level_id,
+            'Cambio automático detectado',
+            CASE 
+                WHEN NEW.level_id > OLD.level_id THEN 'UPGRADE'
+                WHEN NEW.level_id < OLD.level_id THEN 'DOWNGRADE'
+                ELSE 'MANUAL'
+            END
+        );
+    END IF;
+    
+    RETURN NEW;
+END;
+$$ language 'plpgsql';
+
+CREATE TRIGGER track_associate_level_changes 
+    AFTER UPDATE ON associates 
+    FOR EACH ROW 
+    EXECUTE PROCEDURE track_associate_level_change();
+
+-- =============================================================================
+-- FUNCIONES DE LÓGICA DE NEGOCIO PARA NIVELES
+-- =============================================================================
+
+-- Función para evaluar el nivel apropiado de un asociado
+CREATE OR REPLACE FUNCTION evaluate_associate_level(associate_id_param INTEGER)
+RETURNS INTEGER AS $$
+DECLARE
+    current_level_id INTEGER;
+    current_max_credit DECIMAL;
+    consecutive_full_periods INTEGER;
+    consecutive_on_time INTEGER;
+    clients_in_agreement_count INTEGER;
+    calculated_level_id INTEGER;
+BEGIN
+    -- Obtener datos actuales del asociado
+    SELECT 
+        a.level_id,
+        a.consecutive_full_credit_periods,
+        a.consecutive_on_time_payments,
+        a.clients_in_agreement
+    INTO 
+        current_level_id,
+        consecutive_full_periods,
+        consecutive_on_time,
+        clients_in_agreement_count
+    FROM associates a
+    WHERE a.id = associate_id_param;
+    
+    -- Obtener límite de crédito actual
+    SELECT max_loan_amount INTO current_max_credit
+    FROM associate_levels 
+    WHERE id = current_level_id;
+    
+    -- Lógica de evaluación de nivel
+    -- Si tiene 6 períodos consecutivos de uso completo y pagos puntuales
+    IF consecutive_full_periods >= 6 AND consecutive_on_time >= 6 THEN
+        -- Determinar nuevo nivel según límite actual
+        IF current_max_credit >= 900000 THEN
+            -- Ya está en Diamante (ilimitado), mantener
+            calculated_level_id := 4; -- Diamante
+        ELSIF current_max_credit >= 600000 THEN
+            -- Promover a Diamante
+            calculated_level_id := 4;
+        ELSIF current_max_credit >= 300000 THEN
+            -- Promover a Platino
+            calculated_level_id := 3;
+        ELSE
+            -- Promover a Oro
+            calculated_level_id := 2;
+        END IF;
+    ELSE
+        -- Mantener nivel actual si no cumple criterios de promoción
+        calculated_level_id := current_level_id;
+    END IF;
+    
+    RETURN calculated_level_id;
+END;
+$$ language 'plpgsql';
+
+-- Función para promover un asociado basado en su desempeño
+CREATE OR REPLACE FUNCTION promote_associate_if_eligible(associate_id_param INTEGER)
+RETURNS BOOLEAN AS $$
+DECLARE
+    current_level_id INTEGER;
+    new_level_id INTEGER;
+BEGIN
+    -- Obtener nivel actual
+    SELECT level_id INTO current_level_id FROM associates WHERE id = associate_id_param;
+    
+    -- Evaluar nuevo nivel
+    new_level_id := evaluate_associate_level(associate_id_param);
+    
+    -- Si el nivel calculado es superior al actual, promover
+    IF new_level_id > current_level_id THEN
+        UPDATE associates 
+        SET level_id = new_level_id
+        WHERE id = associate_id_param;
+        
+        RETURN TRUE;
+    END IF;
+    
+    RETURN FALSE;
+END;
+$$ language 'plpgsql';
+
+-- Función para degradar asociados que no cumplen requisitos
+CREATE OR REPLACE FUNCTION check_and_demote_associates()
+RETURNS INTEGER AS $$
+DECLARE
+    demoted_count INTEGER := 0;
+    associate_record RECORD;
+BEGIN
+    -- Buscar asociados que podrían necesitar degradación
+    FOR associate_record IN 
+        SELECT id, level_id, consecutive_full_credit_periods, consecutive_on_time_payments
+        FROM associates 
+        WHERE level_id > 1 -- Solo revisar asociados con nivel superior a Plata
+    LOOP
+        -- Si no cumple los requisitos mínimos, considerar degradación
+        IF associate_record.consecutive_full_credit_periods < 3 OR 
+           associate_record.consecutive_on_time_payments < 3 THEN
+            
+            -- Degradar un nivel
+            UPDATE associates 
+            SET level_id = GREATEST(1, associate_record.level_id - 1)
+            WHERE id = associate_record.id;
+            
+            demoted_count := demoted_count + 1;
+        END IF;
+    END LOOP;
+    
+    RETURN demoted_count;
+END;
+$$ language 'plpgsql';
+
 -- =============================================================================
 -- TABLA DE AVALES (GUARANTORS)
 -- =============================================================================
@@ -142,9 +308,10 @@ EXECUTE PROCEDURE update_updated_at_column();
 
 -- 1. Poblar tablas sin dependencias
 INSERT INTO associate_levels (id, name, max_loan_amount) VALUES
-(1, 'Bronce', 50000.00),
-(2, 'Plata', 100000.00),
-(3, 'Oro', 250000.00)
+(1, 'Plata', 300000.00),
+(2, 'Oro', 600000.00),
+(3, 'Platino', 900000.00),
+(4, 'Diamante', 9999999.99)
 ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO roles (id, name) VALUES
