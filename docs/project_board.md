@@ -57,7 +57,7 @@ Este tablero utiliza el formato Kanban en Markdown para rastrear el progreso de 
 
 -   **[DOCS]:** Crear sistema de gestión de contexto y documentación.
 -   **[DOCS]:** Crear sistema de agentes (`personas`).
--   **[CRUD PRÉSTAMOS - BACKEND]:** Implementar endpoints `POST`, `PUT`, `DELETE` para `/api/loans`.
+-   **[CRUD PRÉSTAMOS - BACKEND]:** (Pendiente) Implementar endpoints `POST`, `PUT`, `DELETE` para `/api/loans`. La implementación actualmente no se encuentra expuesta en las rutas del backend; ver `backend/app/loans`.
 -   **[CRUD PRÉSTAMOS - FRONTEND]:** Implementar UI para crear, editar y eliminar préstamos (`LoansPage`, `EditLoanModal`).
 -   **[REFACTOR]:** Refactorizar `Distributors` a `Associates` en todo el proyecto.
 -   **[AUTH]:** Implementar sistema de autenticación (JWT) y autorización (RBAC).

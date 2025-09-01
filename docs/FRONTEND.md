@@ -2,6 +2,11 @@
 
 El frontend de CrediNet es una **Single-Page Application (SPA)** construida con **React** y **Vite**. Se encarga de presentar la interfaz de usuario y de interactuar con el backend a través de su API REST para mostrar y enviar datos.
 
+
+## Manejo de Estado Global
+
+Para el manejo de estado global se utiliza Context API de React, permitiendo compartir información entre componentes de manera eficiente. No se utiliza Redux.
+
 ## Estructura de Módulos
 
 El código fuente se encuentra en `frontend/src/` y sigue una estructura modular basada en funcionalidades.

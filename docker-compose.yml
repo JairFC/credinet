@@ -67,7 +67,7 @@ services:
         condition: service_healthy
     command: ["python", "smoke_test.py"]
     environment:
-      POSTG-RES_USER: credinet_user
+      POSTGRES_USER: credinet_user
       POSTGRES_PASSWORD: credinet_pass
       POSTGRES_DB: credinet_db
       POSTGRES_HOST: db

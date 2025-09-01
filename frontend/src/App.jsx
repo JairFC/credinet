@@ -6,11 +6,13 @@ import LoginPage from './pages/LoginPage';
 import DashboardPage from './pages/DashboardPage';
 import AssociatesPage from './pages/AssociatesPage';
 import CreateAssociatePage from './pages/CreateAssociatePage';
+import EditAssociatePage from './pages/EditAssociatePage';
 import AssociateLoansPage from './pages/AssociateLoansPage';
 import UsersPage from './pages/UsersPage';
 import CreateUserPage from './pages/CreateUserPage';
 import ClientsViewPage from './pages/ClientsViewPage';
 import CreateClientPage from './pages/CreateClientPage'; // Importar la nueva página
+import ClientDetailsPage from './pages/ClientDetailsPage';
 import UserLoansPage from './pages/UserLoansPage';
 import LoanDetailsPage from './pages/LoanDetailsPage';
 import LoansPage from './pages/LoansPage';
@@ -32,11 +34,14 @@ function App() {
               <Route path="/dashboard" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
               <Route path="/associates" element={<ProtectedRoute><AssociatesPage /></ProtectedRoute>} />
               <Route path="/associates/new" element={<ProtectedRoute><CreateAssociatePage /></ProtectedRoute>} />
+              <Route path="/associates/edit/:id" element={<ProtectedRoute><EditAssociatePage /></ProtectedRoute>} />
               <Route path="/associates/:associateId/loans" element={<ProtectedRoute><AssociateLoansPage /></ProtectedRoute>} />
               <Route path="/users" element={<ProtectedRoute><UsersPage /></ProtectedRoute>} />
               <Route path="/users/new" element={<ProtectedRoute><CreateUserPage /></ProtectedRoute>} />
               <Route path="/clients" element={<ProtectedRoute><ClientsViewPage /></ProtectedRoute>} />
               <Route path="/clients/new" element={<ProtectedRoute><CreateClientPage /></ProtectedRoute>} /> {/* Añadir la nueva ruta */}
+              <Route path="/clients/:id" element={<ProtectedRoute><ClientDetailsPage /></ProtectedRoute>} />
+              <Route path="/users/:userId/loans" element={<ProtectedRoute><UserLoansPage /></ProtectedRoute>} />
               <Route path="/users/:userId/loans" element={<ProtectedRoute><UserLoansPage /></ProtectedRoute>} />
               <Route path="/loans" element={<ProtectedRoute><LoansPage /></ProtectedRoute>} />
               <Route path="/loans/new" element={<ProtectedRoute><CreateLoanPage /></ProtectedRoute>} />

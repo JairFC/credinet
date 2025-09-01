@@ -18,12 +18,34 @@ const CurpModal = ({ modalState, onConfirm, onCancel, onCurpChange, onCloseResul
             <h2>Verificar CURP</h2>
             <p>Por favor, confirma la CURP generada. Si es necesario, corrige la homoclave (los dos últimos caracteres).</p>
             <input
-              type="text"
-              value={modalState.curp}
-              onChange={onCurpChange}
-              maxLength="18"
-              className="form-input"
-              style={{ textTransform: 'uppercase', marginBottom: '1rem' }}
+              {error && <div className="alert alert-error">{error}</div>}
+              {success && <div className="alert alert-success">{success}</div>}
+
+        <div className="form-actions" style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
+              <button
+                type="button"
+                onClick={handleFillTestData}
+                className="btn btn-secondary"
+                style={{ backgroundColor: 'var(--color-warning)', color: 'white' }}
+              >
+                Datos de Prueba
+              </button>
+              <button
+                type="button"
+                onClick={handleClearForm}
+                className="btn btn-secondary"
+              >
+                Limpiar Formulario
+              </button>
+              <button type="submit" className="btn btn-primary">
+                Crear Asociado
+              </button>
+            </div>"text"
+            value={modalState.curp}
+            onChange={onCurpChange}
+            maxLength="18"
+            className="form-input"
+            style={{ textTransform: 'uppercase', marginBottom: '1rem' }}
             />
             <div className="modal-actions">
               <button onClick={onConfirm} className="btn btn-primary">Confirmar y Verificar</button>
@@ -437,6 +459,7 @@ const CreateAssociatePage = () => {
   // Función para llenar con datos de prueba únicos
   const handleFillTestData = () => {
     const timestamp = Date.now().toString().slice(-6); // Últimos 6 dígitos del timestamp
+    const randomNum = Math.floor(Math.random() * 1000);
 
     setFormData({
       first_name: 'Asociado',
@@ -748,31 +771,32 @@ const CreateAssociatePage = () => {
                   Verificar
                 </button>
               </div>
-              {isCurpVerified && <span className="success-message">✅ CURP verificada</span>}
+              {isCurpVerified ? (
+                <span className="success-message">✓ CURP verificada</span>
+              ) : (
+                <span className="info-message">La CURP se genera automáticamente y debe ser verificada</span>
+              )}
+              {formErrors.curp && <span className="error-message">{formErrors.curp}</span>}
             </div>
-          </div>
-        </CollapsibleSection>
 
-        {/* INFORMACIÓN DE CONTACTO */}
-        <CollapsibleSection title="Información de Contacto" defaultOpen={true}>
-          <div className="form-grid">
             <div className="form-group">
-              <label className="form-label">Email (Opcional)</label>
+              <label className="form-label">Email</label>
               <input
                 type="email"
                 name="email"
                 value={formData.email}
                 onChange={handleChange}
                 className="form-input"
+                placeholder="Opcional"
               />
               {formErrors.email && <span className="error-message">{formErrors.email}</span>}
-              {formData.email && !isEmailUnique && <span className="error-message">El email ya está registrado</span>}
+              {!formErrors.email && formData.email && !isEmailUnique && <span className="error-message">Este email ya está registrado.</span>}
             </div>
 
             <div className="form-group">
               <label className="form-label">Teléfono *</label>
               <input
-                type="tel"
+                type="text"
                 name="phone_number"
                 value={formData.phone_number}
                 onChange={handleChange}
@@ -781,13 +805,17 @@ const CreateAssociatePage = () => {
                 required
               />
               {formErrors.phone_number && <span className="error-message">{formErrors.phone_number}</span>}
-              {!isPhoneUnique && <span className="error-message">El teléfono ya está registrado</span>}
+              {!formErrors.phone_number && !isPhoneUnique && <span className="error-message">Este teléfono ya está registrado.</span>}
             </div>
           </div>
         </CollapsibleSection>
 
-        {/* INFORMACIÓN DE CUENTA */}
-        <CollapsibleSection title="Información de Cuenta" defaultOpen={true}>
+        {/* INFORMACIÓN DE CUENTA - AUTOGENERADA */}
+        <CollapsibleSection title="Información de Cuenta" defaultOpen={false}>
+          <div className="alert alert-info">
+            <strong>Información generada automáticamente</strong>
+            <p>Los datos de cuenta se generan basándose en la información personal.</p>
+          </div>
           <div className="form-grid">
             <div className="form-group">
               <label className="form-label">Nombre de Usuario</label>

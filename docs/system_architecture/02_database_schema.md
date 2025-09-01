@@ -42,15 +42,10 @@ Almacena la información para cualquier individuo en el sistema (administradores
 - `birth_date`: DATE
 - `curp`: VARCHAR(18) UNIQUE
 - `profile_picture_url`: VARCHAR(255)
-- `address_street`: VARCHAR(255)
-- `address_ext_num`: VARCHAR(20)
-- `address_int_num`: VARCHAR(20)
-- `address_colonia`: VARCHAR(100)
-- `address_zip_code`: VARCHAR(10)
-- `address_municipality`: VARCHAR(100)
-- `address_state`: VARCHAR(50)
 - `associate_id`: INTEGER REFERENCES `associates(id)`
 - `updated_at`: TIMESTAMPTZ
+
+Nota: Las direcciones NO están incrustadas en la tabla `users`. En esta versión del esquema, las direcciones están normalizadas en la tabla `addresses` (ver `addresses` más abajo). Los endpoints que crean o actualizan usuarios gestionan las direcciones en la tabla `addresses` y las asocian por `user_id`.
 
 ### `beneficiaries`
 Almacena los beneficiarios asociados a un usuario.
